@@ -429,16 +429,14 @@ async def channel_receive_handler(client, broadcast):
 
         log_msg = await broadcast.forward(chat_id=Var.BIN_CHANNEL)
 
-        hs_stream_link = (
-            f"{Var.URL}exclusive/{str(log_msg.id)}/?ThiraiHDQ={get_hash(log_msg)}"
-        )
+        stream = f"{URL}watch/{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
         stream_link = await get_shortlink(
-            Var.SHORTLINK_URL2, Var.SHORTLINK_API2, hs_stream_link
+            Var.SHORTLINK_URL, Var.SHORTLINK_API, hs_stream_link
         )
 
-        hs_online_link = f"{Var.URL}{str(log_msg.id)}/?ThiraiHDQ={get_hash(log_msg)}"
+        download = f"{URL}{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
         online_link = await get_shortlink(
-            Var.SHORTLINK_URL2, Var.SHORTLINK_API2, hs_online_link
+            Var.SHORTLINK_URL, Var.SHORTLINK_API, hs_online_link
         )
 
         caption = (
