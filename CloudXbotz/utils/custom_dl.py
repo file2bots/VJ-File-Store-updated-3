@@ -3,12 +3,12 @@ import asyncio
 import logging
 from config import LOG_CHANNEL
 from typing import Dict, Union
-from TechVJ.bot import work_loads
+from CloudXbotz.bot import work_loads
 from pyrogram import Client, utils, raw
 from .file_properties import get_file_ids
 from pyrogram.session import Session, Auth
 from pyrogram.errors import AuthBytesInvalid
-from TechVJ.server.exceptions import FIleNotFound
+from CloudXbotz.server.exceptions import FIleNotFound
 from pyrogram.file_id import FileId, FileType, ThumbnailSource
 
 
