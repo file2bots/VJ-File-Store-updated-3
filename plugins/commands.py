@@ -431,12 +431,12 @@ async def channel_receive_handler(client, broadcast):
 
         stream = f"{URL}watch/{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
         stream_link = await get_shortlink(
-            Var.SHORTLINK_URL, Var.SHORTLINK_API, hs_stream_link
+            config.SHORTLINK_URL, config.SHORTLINK_API, stream
         )
 
         download = f"{URL}{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
         online_link = await get_shortlink(
-            Var.SHORTLINK_URL, Var.SHORTLINK_API, hs_online_link
+            config.SHORTLINK_URL, config.SHORTLINK_API, download
         )
 
         caption = (
