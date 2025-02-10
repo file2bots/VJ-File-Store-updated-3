@@ -405,6 +405,60 @@ async def cb_handler(client: Client, query: CallbackQuery):
             parse_mode=enums.ParseMode.HTML
         )  
         
-# Don't Remove Credit Tg - @VJ_Botz
-# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
-# Ask Doubt on telegram @KingVJ01
+@StreamBot.on_message(filters.channel & ~filters.group & (filters.document | filters.video | filters.photo) & ~filters.forwarded, group=-1,)
+async def channel_receive_handler(client, broadcast):
+    try:
+        message_id = broadcast.id
+        chat_id = broadcast.chat.id
+        media = broadcast.document or broadcast.video or broadcast.audio
+
+        file_name = (
+            broadcast.caption
+            if (broadcast.document or broadcast.video or broadcast.audio)
+            else ""
+        )
+
+        patterns_to_remove = [
+            r"📦 Size\s*:\s*\d+(\.\d+)?\s*(MB|GB)",  # Remove size (e.g., "Size : 1.32GB")
+            r"💿\s*Quality\s*[:\-]?\s*\d+p(\s*\w*)?",              # Remove quality (e.g., "Quality : 1080p")
+            r"🎙 Language\s*:\s*.*",               # Remove language (e.g., "Language : Tamil")
+        ]
+        
+        for pattern in patterns_to_remove:
+            file_name = re.sub(pattern, "", file_name).strip()
+
+        log_msg = await broadcast.forward(chat_id=Var.BIN_CHANNEL)
+
+        hs_stream_link = (
+            f"{Var.URL}exclusive/{str(log_msg.id)}/?ThiraiHDQ={get_hash(log_msg)}"
+        )
+        stream_link = await get_shortlink(
+            Var.SHORTLINK_URL2, Var.SHORTLINK_API2, hs_stream_link
+        )
+
+        hs_online_link = f"{Var.URL}{str(log_msg.id)}/?ThiraiHDQ={get_hash(log_msg)}"
+        online_link = await get_shortlink(
+            Var.SHORTLINK_URL2, Var.SHORTLINK_API2, hs_online_link
+        )
+
+        caption = (
+            f"<b>@TamizhZone {file_name}\n\n"
+            f"➠ Fᴀsᴛ Dᴏᴡɴʟᴏᴀᴅ Lɪɴᴋ :\n ╰┈➤ {stream_link}\n\n"
+            f"♡꘎ 𓆩 Pᴏᴡᴇʀᴅ ʙʏ :- <a href='https://t.me/TamizhZone'> Tᴀᴍɪᴢʜ Zᴏɴᴇ </a>𓆪꘎♡</b>"
+            
+        )
+
+        await bot.send_cached_media(
+            caption=caption, chat_id=chat_id, file_id=media.file_id
+        )
+        await broadcast.delete()
+
+    except Exception as e:
+        print(f"Error : {e}")
+        print(f"Original message ID: {message_id}")
+        print(f"Chat ID: {chat_id}")
+        print(f"Forwarded message ID: {log_msg.id}")
+        print(f"hs_stream_link: {hs_stream_link}")
+        print(f"stream_link: {stream_link}")
+        print(f"hs_online_link: {hs_online_link}")
+        print(f"online_link: {online_link}")
