@@ -6,8 +6,8 @@ class script(object):
 
 ⚙️ sɪᴢᴇ : {file_size}
 
-Jᴏɪɴ [ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ](https://t.me/TamilMob_Zone)
-Jᴏɪɴ [ ᴍᴏᴠɪᴇ sᴇᴀʀᴄʜ ʙᴏᴛ ](https://t.me/SimplySearchBot)</b>""" 
+🌹 𝐉𝐨𝐢𝐧 ➠ [ 𝐔ᴘᴅᴀᴛᴇ 𝐂ʜᴀɴɴᴇʟ ](https://t.me/TamilMob_Zone)
+🍀 𝐉𝐨𝐢𝐧 ➠ [ 𝐌ᴏᴠɪᴇ 𝐒ᴇᴀʀᴄʜ ʙᴏᴛ ](https://t.me/SimplySearchBot)</b>""" 
 
     SHORTENER_API_MESSAGE = """<b>Tᴏ ᴀᴅᴅ ᴏʀ ᴜᴘᴅᴀᴛᴇ ʏᴏᴜʀ Sʜᴏʀᴛɴᴇʀ Wᴇʙsɪᴛᴇ API, /api (ᴀᴘɪ)
             
@@ -30,6 +30,8 @@ If You Want To Remove Api Then Copy This And Send To Bot - `/api None`"""
 📝 ʟᴀɴɢᴜᴀɢᴇ: <a href=https://www.python.org>𝐏𝐲𝐭𝐡𝐨𝐧𝟑</a>
 
 📚 ʟɪʙʀᴀʀʏ: <a href=https://docs.pyrogram.org>𝐏𝐲𝐫𝐨𝐠𝐫𝐚𝐦</a>
+
+📝 ᴄᴏɴᴛᴀᴄᴛ ᴜs: <a href=https://t.me/CloudxAdmin_Bot>𝐂𝐥𝐨𝐮𝐝𝐱𝐀𝐝𝐦𝐢𝐧</a>
 
 """
 
