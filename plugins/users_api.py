@@ -2,6 +2,7 @@
 import requests
 import json
 from motor.motor_asyncio import AsyncIOMotorClient
+from plugins.clone import mongo_db
 
 async def get_short_link(user, link):
     api_key = user["shortener_api"]
