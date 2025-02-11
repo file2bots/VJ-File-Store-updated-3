@@ -19,6 +19,7 @@ BOT_TOKEN = environ.get("BOT_TOKEN", "7203842216:AAHZx2eo9rSQiyW0BBcyZU72Tbzg887
 
 PICS = (environ.get('PICS', 'https://envs.sh/yx6.jpg https://envs.sh/yxy.jpg https://envs.sh/yxX.jpg https://envs.sh/yxM.jpg https://envs.sh/yxm.jpg https://envs.sh/yxO.jpg https://envs.sh/yxa.jpg https://envs.sh/yxf.jpg https://envs.sh/yxg.jpg https://envs.sh/yxH.jpg')).split() # Bot Start Picture
 ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '1397269319').split()]
+AUTH_CHANNEL = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('AUTH_CHANNEL', '-1001902923509 ').split()] # give channel id with seperate space. Ex : ('-10073828 -102782829 -1007282828')
 BOT_USERNAME = environ.get("BOT_USERNAME", "StoreFilesGetBot") # without @
 PORT = environ.get("PORT", "8080")
 
