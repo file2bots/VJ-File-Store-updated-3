@@ -26,7 +26,6 @@ from CloudXbotz.server import web_server
 
 import asyncio
 from pyrogram import idle
-from plugins.clone import restart_bots
 from CloudXbotz.bot import StreamBot
 from CloudXbotz.utils.keepalive import ping_server
 from CloudXbotz.bot.clients import initialize_clients
