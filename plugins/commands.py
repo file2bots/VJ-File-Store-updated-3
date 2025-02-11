@@ -46,14 +46,17 @@ async def start(client, message):
         await db.add_user(message.from_user.id, message.from_user.first_name)
         await client.send_message(LOG_CHANNEL, script.LOG_TEXT.format(message.from_user.id, message.from_user.mention))
     if len(message.command) != 2:
-        buttons = [[
-            InlineKeyboardButton('💝 sᴜʙsᴄʀɪʙᴇ ᴍʏ ʏᴏᴜᴛᴜʙᴇ ᴄʜᴀɴɴᴇʟ', url='https://youtube.com/@Tech_VJ')
-            ],[
-            InlineKeyboardButton('🔍 sᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ', url='https://t.me/vj_bot_disscussion'),
-            InlineKeyboardButton('🤖 ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ', url='https://t.me/vj_botz')
-            ],[
+        buttons = [
+            [
+            InlineKeyboardButton('🔍 sᴜᴘᴘᴏʀᴛ', url='https://t.me/CloudxAdmin_Bot'),
+            InlineKeyboardButton('🤖 ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ', url='https://t.me/+mDKrpo2FcD04Nzll')
+            ],
+            [
             InlineKeyboardButton('💁‍♀️ ʜᴇʟᴘ', callback_data='help'),
             InlineKeyboardButton('😊 ᴀʙᴏᴜᴛ', callback_data='about')
+            ],
+            [
+            InlineKeyboardButton('✇ Jᴏɪɴ Mᴏᴠɪᴇs Cʜᴀɴɴᴇʟ ✇', callback_data='extra')
         ]]
         reply_markup = InlineKeyboardMarkup(buttons)
         me = await client.get_me()
@@ -302,14 +305,17 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )
 
     elif query.data == "start":
-        buttons = [[
-            InlineKeyboardButton('💝 sᴜʙsᴄʀɪʙᴇ ᴍʏ ʏᴏᴜᴛᴜʙᴇ ᴄʜᴀɴɴᴇʟ', url='https://youtube.com/@Tech_VJ')
-        ],[
-            InlineKeyboardButton('🔍 sᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ', url='https://t.me/vj_bot_disscussion'),
-            InlineKeyboardButton('🤖 ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ', url='https://t.me/vj_botz')
-        ],[
+        buttons = [
+            [
+            InlineKeyboardButton('🔍 sᴜᴘᴘᴏʀᴛ ', url='https://t.me/CloudxAdmin_Bot'),
+            InlineKeyboardButton('🤖 ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ', url='https://t.me/+mDKrpo2FcD04Nzll')
+            ],
+            [
             InlineKeyboardButton('💁‍♀️ ʜᴇʟᴘ', callback_data='help'),
             InlineKeyboardButton('😊 ᴀʙᴏᴜᴛ', callback_data='about')
+            ],
+            [
+            InlineKeyboardButton('✇ Jᴏɪɴ Mᴏᴠɪᴇs Cʜᴀɴɴᴇʟ ✇', callback_data='extra')
         ]]
         reply_markup = InlineKeyboardMarkup(buttons)
         await client.edit_message_media(
@@ -323,6 +329,29 @@ async def cb_handler(client: Client, query: CallbackQuery):
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
         )          
+    
+    elif query.data == "extra":
+        buttons = [[
+            InlineKeyboardButton('🍿 Uᴘᴅᴀᴛᴇᴅ Cʜᴀɴɴᴇʟs 📌', url='https://t.me/+88LpGR0t8_1lNzU1')
+        ],[
+            InlineKeyboardButton('🔎 ᴍᴏᴠɪᴇ sᴇᴀʀᴄʜ ʙᴏᴛ 🔍', url='https://t.me/SimplySearchBot')
+        ],[
+            InlineKeyboardButton('🔞 Rᴇsᴛʀɪᴄᴛᴇᴅ Aʀᴇᴀ 🔞', url='https://t.me/+UiiWHjVno04yMjU1')
+        ],[
+            InlineKeyboardButton('🏠 𝙷𝙾𝙼𝙴 🏠', callback_data='start'),
+            InlineKeyboardButton('Cʟᴏsᴇ🔒', callback_data='close_data')
+        ]]
+        await client.edit_message_media(
+            query.message.chat.id, 
+            query.message.id, 
+            InputMediaPhoto(random.choice(PICS))
+        )
+        reply_markup = InlineKeyboardMarkup(buttons)
+        await query.message.edit_text(
+            text=script.JOINUPDATES_TXT,
+            reply_markup=reply_markup,
+            parse_mode=enums.ParseMode.HTML
+        )
     
     elif query.data == "help":
         buttons = [[
