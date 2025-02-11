@@ -64,6 +64,8 @@ async def start():
     await app.setup()
     bind_address = "0.0.0.0"
     await web.TCPSite(app, bind_address, PORT).start()
+    if CLONE_MODE == True:
+        await restart_bots()
     print("Bot Started Powered By @CloudXbotz")
     await idle()
 
