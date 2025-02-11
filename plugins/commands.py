@@ -58,6 +58,8 @@ async def start(client, message):
             [
             InlineKeyboardButton('✇ Jᴏɪɴ Mᴏᴠɪᴇs Cʜᴀɴɴᴇʟ ✇', callback_data='extra')
         ]]
+        if CLONE_MODE == True:
+            buttons.append([InlineKeyboardButton('🤖 ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄʟᴏɴᴇ ʙᴏᴛ', callback_data='clone')])
         reply_markup = InlineKeyboardMarkup(buttons)
         me = await client.get_me()
         await message.reply_photo(
@@ -317,6 +319,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             [
             InlineKeyboardButton('✇ Jᴏɪɴ Mᴏᴠɪᴇs Cʜᴀɴɴᴇʟ ✇', callback_data='extra')
         ]]
+        if CLONE_MODE == True:
+            buttons.append([InlineKeyboardButton('🤖 ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄʟᴏɴᴇ ʙᴏᴛ', callback_data='clone')])
         reply_markup = InlineKeyboardMarkup(buttons)
         await client.edit_message_media(
             query.message.chat.id, 
