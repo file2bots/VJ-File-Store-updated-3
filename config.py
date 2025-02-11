@@ -24,7 +24,7 @@ PORT = environ.get("PORT", "8080")
 
 # Database Information
 DB_URI = environ.get("DB_URI", "mongodb+srv://wemedia360:CuF1r3VUPJkYpZ7k@file2linkcaptoingen.fie8o.mongodb.net/?retryWrites=true&w=majority&appName=File2Linkcaptoingen")
-DB_NAME = environ.get("DB_NAME", "File2Linkcaptoingen")
+DB_NAME = environ.get("DB_NAME", "File2Linkcapgen")
 
 # Auto Delete Information
 AUTO_DELETE_MODE = bool(environ.get('AUTO_DELETE_MODE', True)) # Set True or False
