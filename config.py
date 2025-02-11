@@ -17,7 +17,7 @@ API_ID = int(environ.get("API_ID", "16023154"))
 API_HASH = environ.get("API_HASH", "c216393ab439dd055858680916a3444b")
 BOT_TOKEN = environ.get("BOT_TOKEN", "7203842216:AAHZx2eo9rSQiyW0BBcyZU72Tbzg887x3bc")
 
-PICS = (environ.get('PICS', 'https://graph.org/file/ce1723991756e48c35aa1.jpg')).split() # Bot Start Picture
+PICS = (environ.get('PICS', 'https://envs.sh/yx6.jpg https://envs.sh/yxy.jpg https://envs.sh/yxX.jpg https://envs.sh/yxM.jpg https://envs.sh/yxm.jpg https://envs.sh/yxO.jpg https://envs.sh/yxa.jpg https://envs.sh/yxf.jpg https://envs.sh/yxg.jpg https://envs.sh/yxH.jpg')).split() # Bot Start Picture
 ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '1397269319').split()]
 BOT_USERNAME = environ.get("BOT_USERNAME", "StoreFilesGetBot") # without @
 PORT = environ.get("PORT", "8080")
