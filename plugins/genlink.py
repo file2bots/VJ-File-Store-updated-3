@@ -65,7 +65,7 @@ async def gen_link_s(bot, message):
         await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
 
 #OMDB_API_KEY = "7cd62fdc"  
-OMDB_API_KEY = "YOUR_OMDB_API_KEY"
+#OMDB_API_KEY = "YOUR_OMDB_API_KEY"
 
 @Client.on_message(filters.command(['batch']) & filters.create(allowed))
 async def gen_link_batch(bot, message):
@@ -136,7 +136,6 @@ async def gen_link_batch(bot, message):
         f"✅ **Batch Link Generated!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title and year in this format:**\n`Title | Year`"
     )
 
-    # **WAIT FOR TITLE & YEAR INPUT**
     @Client.on_message(filters.text & filters.reply)
     async def get_title_year(bot, title_msg):
         if title_msg.reply_to_message.message_id != title_request.message_id:
@@ -147,25 +146,44 @@ async def gen_link_batch(bot, message):
 
         title, year = map(str.strip, title_msg.text.split("|"))
 
-        # **FETCH POSTER FROM OMDb**
-        url = f"http://www.omdbapi.com/?t={title}&y={year}&apikey={OMDB_API_KEY}"
-        response = requests.get(url).json()
-        if response.get("Response") == "True":
-            poster_url = response.get("Poster", None)
-        else:
-            poster_url = None
+        imdb_search_url = f"https://www.imdb.com/find?q={title.replace(' ', '+')}+{year}"
+        headers = {"User-Agent": "Mozilla/5.0"}
 
-        # **CREATE POST WITH INLINE BUTTON**
+        # Fetch IMDb search results page
+        try:
+            response = requests.get(imdb_search_url, headers=headers)
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            first_result = soup.select_one(".result_text a")
+            if not first_result:
+                return await title_msg.reply("❌ Movie not found on IMDb!")
+
+            movie_url = "https://www.imdb.com" + first_result["href"]
+
+            # Fetch IMDb movie page to get the poster
+            movie_page = requests.get(movie_url, headers=headers)
+            movie_soup = BeautifulSoup(movie_page.text, "html.parser")
+
+            poster_tag = movie_soup.select_one(".ipc-image")
+            poster_url = poster_tag["src"] if poster_tag else None
+
+            if not poster_url:
+                return await title_msg.reply("❌ Could not fetch poster, but here's the link!")
+
+        except Exception as e:
+            return await title_msg.reply(f"❌ IMDb fetch failed: {e}")
+
+        # Create post with poster & inline button
         buttons = InlineKeyboardMarkup([
             [InlineKeyboardButton("🎬 Watch Now", url=share_link)],
-            [InlineKeyboardButton("🔍 More Info", url=f"https://www.imdb.com/title/{response.get('imdbID')}")] if response.get("imdbID") else []
+            [InlineKeyboardButton("🔍 IMDb", url=movie_url)]
         ])
 
-        caption = f"🎬 **{title} ({year})**\n\n🔗 **Link:** {share_link}"
-        
-        if poster_url:
-            await bot.send_photo(message.chat.id, poster_url, caption=caption, reply_markup=buttons)
-        else:
-            await bot.send_message(message.chat.id, caption, reply_markup=buttons)
+        await bot.send_photo(
+            message.chat.id,
+            poster_url,
+            caption=f"🎬 **{title} ({year})**\n\n🔗 **Watch Now:** {share_link}",
+            reply_markup=buttons
+        )
 
         await title_msg.reply("✅ **Post created successfully!**")
