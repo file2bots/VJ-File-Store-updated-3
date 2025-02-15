@@ -137,7 +137,7 @@ async def gen_link_batch(bot, message):
 
     # **WAIT FOR TITLE & YEAR INPUT**
     
-    @Client.on_message(filters.text & filters.reply)
+@Client.on_message(filters.text & filters.reply)
 async def get_title_year(bot, title_msg):
     global title_requests
 
