@@ -65,7 +65,7 @@ async def gen_link_s(bot, message):
         await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
 
 OMDB_API_KEY = "7cd62fdc"
-LOG_CHANNEL = "-1001740524004"
+LOG_CHANNEL = -1001740524004
 title_requests = {}
 
 @Client.on_message(filters.command(['batch']) & filters.create(allowed))
@@ -112,16 +112,21 @@ async def gen_link_batch(bot, message):
     except Exception as e:
         return await message.reply(f"❌ **Error:** `{e}`")
 
-    # Debug Log
-    print(f"Processing batch: Chat ID: {chat_id}, Msg Range: {f_msg_id} - {l_msg_id}")
-
     sts = await message.reply("⏳ **Generating batch link... Please wait!**")
 
+    # **🛠️ DEBUG LOGGING**
+    print(f"[LOG] Fetching messages from Chat ID: {chat_id} | Range: {f_msg_id} - {l_msg_id}")
+
     outlist = []
+    count = 0  # ✅ Count fetched messages
+
     async for msg in bot.iter_messages(chat_id, min_id=f_msg_id-1, max_id=l_msg_id+1, reverse=True):
+        count += 1  # ✅ Track message count
         if msg.empty or msg.service:
             continue
         outlist.append({"channel_id": chat_id, "msg_id": msg.id})
+
+    print(f"[LOG] Total messages fetched: {count}")  # ✅ Log how many messages were found
 
     if not outlist:
         return await sts.edit("❌ **No valid messages found in the given range!**")
@@ -136,12 +141,15 @@ async def gen_link_batch(bot, message):
     file_id = base64.urlsafe_b64encode(str(post.id).encode("ascii")).decode().strip("=")
     share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
-    # Store request details for title input
-    title_requests[message.from_user.id] = {"message_id": sts.message_id, "share_link": share_link}
-
-    await sts.edit(
-        f"✅ **Batch Link Generated!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title and year in this format:**\n`Movie Title | Year`"
+    title_request_msg = await sts.edit(
+        f"✅ **Batch Link Generated!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title and year in this format:**\n`Title | Year`"
     )
+
+    # Store title request for this user
+    title_requests[message.from_user.id] = {
+        "message_id": title_request_msg.message_id,
+        "share_link": share_link
+    }
 
 @Client.on_message(filters.text & filters.reply)
 async def get_title_year(bot, title_msg):
@@ -157,30 +165,29 @@ async def get_title_year(bot, title_msg):
         return  # Ignore if it's not a reply to the expected message
 
     if "|" not in title_msg.text:
-        return await title_msg.reply("❌ **Invalid format!**\nSend like this: `Inception | 2010`")
+        return await title_msg.reply("❌ **Invalid format.**\nSend like this: `Inception | 2010`")
 
     title, year = map(str.strip, title_msg.text.split("|"))
 
-    # Fetch movie poster from OMDb API
+    # **FETCH POSTER FROM OMDb**
     url = f"http://www.omdbapi.com/?t={title}&y={year}&apikey={OMDB_API_KEY}"
     response = requests.get(url).json()
-
     poster_url = response.get("Poster") if response.get("Response") == "True" else None
-    imdb_id = response.get("imdbID")
 
-    buttons = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🎬 Watch Now", url=share_link)],
-        [InlineKeyboardButton("🔍 More Info", url=f"https://www.imdb.com/title/{imdb_id}")] if imdb_id else []
-    ])
+    # **CREATE POST WITH INLINE BUTTON**
+    buttons = [[InlineKeyboardButton("🎬 Watch Now", url=share_link)]]
+
+    if response.get("imdbID"):
+        buttons.append([InlineKeyboardButton("🔍 More Info", url=f"https://www.imdb.com/title/{response.get('imdbID')}")])
 
     caption = f"🎬 **{title} ({year})**\n\n🔗 **Link:** {share_link}"
 
     if poster_url:
-        await bot.send_photo(title_msg.chat.id, poster_url, caption=caption, reply_markup=buttons)
+        await bot.send_photo(title_msg.chat.id, poster_url, caption=caption, reply_markup=InlineKeyboardMarkup(buttons))
     else:
-        await bot.send_message(title_msg.chat.id, caption, reply_markup=buttons)
+        await bot.send_message(title_msg.chat.id, caption, reply_markup=InlineKeyboardMarkup(buttons))
 
     await title_msg.reply("✅ **Post created successfully!**")
 
-    # Remove user entry after processing
+    # Remove user entry from dictionary after use
     del title_requests[user_id]
