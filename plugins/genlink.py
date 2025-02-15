@@ -9,8 +9,6 @@ import os
 import json
 import base64
 import requests
-import asyncio
-from bs4 import BeautifulSoup  
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 async def allowed(_, __, message):
@@ -65,9 +63,8 @@ async def gen_link_s(bot, message):
         await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🖇️ sʜᴏʀᴛ ʟɪɴᴋ :- {short_link}</b>")
     else:
         await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
-        
-#OMDB_API_KEY = "YOUR_OMDB_API_KEY"
-OMDB_API_KEY = "7cd62fdc"  
+
+OMDB_API_KEY = "7cd62fdc"
 
 @Client.on_message(filters.command(['batch']) & filters.create(allowed))
 async def gen_link_batch(bot, message):
@@ -106,6 +103,10 @@ async def gen_link_batch(bot, message):
 
     try:
         chat_id = (await bot.get_chat(f_chat_id)).id
+    except ChannelInvalid:
+        return await message.reply('This may be a private channel. Make me an admin to index files.')
+    except (UsernameInvalid, UsernameNotModified):
+        return await message.reply('Invalid Link specified.')
     except Exception as e:
         return await message.reply(f'Error - {e}')
     
@@ -113,79 +114,57 @@ async def gen_link_batch(bot, message):
 
     outlist = []
     tot = 0
-
-    try:
-        async for msg in bot.iter_messages(f_chat_id, min_id=f_msg_id, max_id=l_msg_id, limit=1000):
-            tot += 1
-            if msg.empty or msg.service:
-                continue
-            outlist.append({"channel_id": f_chat_id, "msg_id": msg.id})
-
-            if tot % 10 == 0:
-                await sts.edit(f"📥 Processing messages... {tot} fetched")
-
-            await asyncio.sleep(0.1)
-
-        if not outlist:
-            return await sts.edit("❌ No valid messages found!")
-
-    except Exception as e:
-        return await sts.edit(f"❌ Error while fetching messages: {e}")
+    async for msg in bot.iter_messages(f_chat_id, l_msg_id, f_msg_id):
+        tot += 1
+        if msg.empty or msg.service:
+            continue
+        file = {"channel_id": f_chat_id, "msg_id": msg.id}
+        outlist.append(file)
 
     json_file = f"batchmode_{message.from_user.id}.json"
     with open(json_file, "w+") as out:
         json.dump(outlist, out)
 
-    try:
-        post = await bot.send_document(LOG_CHANNEL, json_file, file_name="Batch.json", caption="⚠️ Batch Generated.")
-        os.remove(json_file)
-    except Exception as e:
-        return await sts.edit(f"❌ Error while sending file: {e}")
+    post = await bot.send_document(LOG_CHANNEL, json_file, file_name="Batch.json", caption="⚠️ Batch Generated.")
+    os.remove(json_file)
 
     file_id = base64.urlsafe_b64encode(str(post.id).encode("ascii")).decode().strip("=")
     share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
-    await sts.edit(f"✅ **Batch Link Generated!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title and year in this format:**\n`Title | Year`")
+    title_request = await sts.edit(
+        f"✅ **Batch Link Generated!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title and year in this format:**\n`Title | Year`"
+    )
 
-@Client.on_message(filters.text & filters.reply)
-async def get_title_year(bot, title_msg):
-    try:
+    # **WAIT FOR TITLE & YEAR INPUT**
+    @Client.on_message(filters.text & filters.reply)
+    async def get_title_year(bot, title_msg):
+        if title_msg.reply_to_message.message_id != title_request.message_id:
+            return  # Ignore unrelated messages
+
         if "|" not in title_msg.text:
             return await title_msg.reply("❌ Invalid format. Send like this: `Inception | 2010`")
 
         title, year = map(str.strip, title_msg.text.split("|"))
-        share_link = batch_data.get(title_msg.from_user.id)
 
-        if not share_link:
-            return await title_msg.reply("❌ Error: Batch link not found. Generate it again!")
+        # **FETCH POSTER FROM OMDb**
+        url = f"http://www.omdbapi.com/?t={title}&y={year}&apikey={OMDB_API_KEY}"
+        response = requests.get(url).json()
+        if response.get("Response") == "True":
+            poster_url = response.get("Poster", None)
+        else:
+            poster_url = None
 
-        # Fetch movie data from OMDb API
-        omdb_url = f"https://www.omdbapi.com/?t={title.replace(' ', '+')}&y={year}&apikey={OMDB_API_KEY}"
-        response = requests.get(omdb_url).json()
-
-        if response.get("Response") == "False":
-            return await title_msg.reply("❌ No results found on OMDb!")
-
-        movie_url = f"https://www.imdb.com/title/{response['imdbID']}"
-        poster_url = response.get("Poster", None)
-
-        if not poster_url or poster_url == "N/A":
-            return await title_msg.reply("❌ Could not fetch poster!")
-
-        # Send movie details with inline buttons
+        # **CREATE POST WITH INLINE BUTTON**
         buttons = InlineKeyboardMarkup([
             [InlineKeyboardButton("🎬 Watch Now", url=share_link)],
-            [InlineKeyboardButton("🔍 IMDb", url=movie_url)]
+            [InlineKeyboardButton("🔍 More Info", url=f"https://www.imdb.com/title/{response.get('imdbID')}")] if response.get("imdbID") else []
         ])
 
-        await bot.send_photo(
-            title_msg.chat.id,
-            poster_url,
-            caption=f"🎬 **{response['Title']} ({response['Year']})**\n\n🔗 **Watch Now:** {share_link}",
-            reply_markup=buttons
-        )
+        caption = f"🎬 **{title} ({year})**\n\n🔗 **Link:** {share_link}"
+        
+        if poster_url:
+            await bot.send_photo(message.chat.id, poster_url, caption=caption, reply_markup=buttons)
+        else:
+            await bot.send_message(message.chat.id, caption, reply_markup=buttons)
 
         await title_msg.reply("✅ **Post created successfully!**")
-
-    except Exception as e:
-        await title_msg.reply(f"❌ Error: {e}")
