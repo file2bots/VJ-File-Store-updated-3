@@ -136,35 +136,46 @@ async def gen_link_batch(bot, message):
     )
 
     # **WAIT FOR TITLE & YEAR INPUT**
+    
     @Client.on_message(filters.text & filters.reply)
-    async def get_title_year(bot, title_msg):
-        if title_msg.reply_to_message.message_id != title_request.message_id:
-            return  # Ignore unrelated messages
+async def get_title_year(bot, title_msg):
+    global title_requests
 
-        if "|" not in title_msg.text:
-            return await title_msg.reply("❌ Invalid format. Send like this: `Inception | 2010`")
+    user_id = title_msg.from_user.id
+    if user_id not in title_requests:
+        return  # Ignore unrelated messages
 
-        title, year = map(str.strip, title_msg.text.split("|"))
+    request_data = title_requests[user_id]
+    expected_message_id = request_data["message_id"]
+    share_link = request_data["share_link"]
 
-        # **FETCH POSTER FROM OMDb**
-        url = f"http://www.omdbapi.com/?t={title}&y={year}&apikey={OMDB_API_KEY}"
-        response = requests.get(url).json()
-        if response.get("Response") == "True":
-            poster_url = response.get("Poster", None)
-        else:
-            poster_url = None
+    if title_msg.reply_to_message.message_id != expected_message_id:
+        return  # Ignore if it's not a reply to the expected message
 
-        # **CREATE POST WITH INLINE BUTTON**
-        buttons = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🎬 Watch Now", url=share_link)],
-            [InlineKeyboardButton("🔍 More Info", url=f"https://www.imdb.com/title/{response.get('imdbID')}")] if response.get("imdbID") else []
-        ])
+    if "|" not in title_msg.text:
+        return await title_msg.reply("❌ Invalid format. Send like this: `Inception | 2010`")
 
-        caption = f"🎬 **{title} ({year})**\n\n🔗 **Link:** {share_link}"
-        
-        if poster_url:
-            await bot.send_photo(message.chat.id, poster_url, caption=caption, reply_markup=buttons)
-        else:
-            await bot.send_message(message.chat.id, caption, reply_markup=buttons)
+    title, year = map(str.strip, title_msg.text.split("|"))
 
-        await title_msg.reply("✅ **Post created successfully!**")
+    # **FETCH POSTER FROM OMDb**
+    url = f"http://www.omdbapi.com/?t={title}&y={year}&apikey={OMDB_API_KEY}"
+    response = requests.get(url).json()
+    poster_url = response.get("Poster") if response.get("Response") == "True" else None
+
+    # **CREATE POST WITH INLINE BUTTON**
+    buttons = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🎬 Watch Now", url=share_link)],
+        [InlineKeyboardButton("🔍 More Info", url=f"https://www.imdb.com/title/{response.get('imdbID')}")] if response.get("imdbID") else []
+    ])
+
+    caption = f"🎬 **{title} ({year})**\n\n🔗 **Link:** {share_link}"
+
+    if poster_url:
+        await bot.send_photo(title_msg.chat.id, poster_url, caption=caption, reply_markup=buttons)
+    else:
+        await bot.send_message(title_msg.chat.id, caption, reply_markup=buttons)
+
+    await title_msg.reply("✅ **Post created successfully!**")
+
+    # Remove user entry from dictionary after use
+    del title_requests[user_id]
