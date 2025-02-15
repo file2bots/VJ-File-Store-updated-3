@@ -64,7 +64,7 @@ async def gen_link_s(bot, message):
     else:
         await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
 
-OMDB_API_KEY = "YOUR_OMDB_API_KEY"
+OMDB_API_KEY = "7cd62fdc"
 
 @Client.on_message(filters.command(['batch']) & filters.create(allowed))
 async def gen_link_batch(bot, message):
