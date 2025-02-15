@@ -64,11 +64,9 @@ async def gen_link_s(bot, message):
         await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🖇️ sʜᴏʀᴛ ʟɪɴᴋ :- {short_link}</b>")
     else:
         await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
-
-#OMDB_API_KEY = "7cd62fdc"  
+        
 #OMDB_API_KEY = "YOUR_OMDB_API_KEY"
-
-batch_data = {}  # Dictionary to store batch links temporarily
+OMDB_API_KEY = "7cd62fdc"  
 
 @Client.on_message(filters.command(['batch']) & filters.create(allowed))
 async def gen_link_batch(bot, message):
@@ -144,41 +142,26 @@ async def gen_link_batch(bot, message):
 @Client.on_message(filters.text & filters.reply)
 async def get_title_year(bot, title_msg):
     try:
-        if not title_msg.reply_to_message:
-            return
-        
         if "|" not in title_msg.text:
             return await title_msg.reply("❌ Invalid format. Send like this: `Inception | 2010`")
 
         title, year = map(str.strip, title_msg.text.split("|"))
-
         share_link = batch_data.get(title_msg.from_user.id)
+
         if not share_link:
             return await title_msg.reply("❌ Error: Batch link not found. Generate it again!")
 
-        imdb_search_url = f"https://www.imdb.com/find?q={title.replace(' ', '+')}+{year}"
-        headers = {"User-Agent": "Mozilla/5.0"}
+        # Fetch movie data from OMDb API
+        omdb_url = f"https://www.omdbapi.com/?t={title.replace(' ', '+')}&y={year}&apikey={OMDB_API_KEY}"
+        response = requests.get(omdb_url).json()
 
-        response = requests.get(imdb_search_url, headers=headers)
-        if response.status_code != 200:
-            return await title_msg.reply("❌ IMDb search failed!")
+        if response.get("Response") == "False":
+            return await title_msg.reply("❌ No results found on OMDb!")
 
-        soup = BeautifulSoup(response.text, "html.parser")
-        first_result = soup.select_one("td.result_text a")
+        movie_url = f"https://www.imdb.com/title/{response['imdbID']}"
+        poster_url = response.get("Poster", None)
 
-        if not first_result:
-            return await title_msg.reply("❌ No results found on IMDb!")
-
-        movie_url = "https://www.imdb.com" + first_result["href"]
-
-        # Fetch poster from IMDb movie page
-        movie_page = requests.get(movie_url, headers=headers)
-        movie_soup = BeautifulSoup(movie_page.text, "html.parser")
-
-        poster_tag = movie_soup.select_one('meta[property="og:image"]')
-        poster_url = poster_tag["content"] if poster_tag else None
-
-        if not poster_url:
+        if not poster_url or poster_url == "N/A":
             return await title_msg.reply("❌ Could not fetch poster!")
 
         # Send movie details with inline buttons
@@ -190,7 +173,7 @@ async def get_title_year(bot, title_msg):
         await bot.send_photo(
             title_msg.chat.id,
             poster_url,
-            caption=f"🎬 **{title} ({year})**\n\n🔗 **Watch Now:** {share_link}",
+            caption=f"🎬 **{response['Title']} ({response['Year']})**\n\n🔗 **Watch Now:** {share_link}",
             reply_markup=buttons
         )
 
