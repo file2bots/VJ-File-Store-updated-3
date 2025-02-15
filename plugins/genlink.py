@@ -79,95 +79,89 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 OMDB_API_KEY = "7cd62fdc"
 LOG_CHANNEL = "-1001740524004"
-
 title_requests = {}  # Store pending title requests
 
 
-@Client.on_message(filters.command(['batch']) & filters.create(allowed))
+@Client.on_message(filters.command(['batch']) & filters.private)
 async def gen_link_batch(bot, message):
     username = (await bot.get_me()).username
 
-    # Validate input format
-    args = message.text.split(" ")
-    if len(args) != 3:
-        return await message.reply("⚠️ **Incorrect format.**\nExample: `/batch <link1> <link2>`")
+    if " " not in message.text:
+        return await message.reply("⚠️ **Incorrect format!**\nExample: `/batch https://t.me/Channel/1 https://t.me/Channel/100`")
 
-    _, first, last = args
+    links = message.text.strip().split(" ")
+    if len(links) != 3:
+        return await message.reply("⚠️ **Incorrect format!**\nExample: `/batch https://t.me/Channel/1 https://t.me/Channel/100`")
+
+    _, first, last = links
     regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
 
-    # Validate first link
-    match_first = regex.match(first)
-    if not match_first:
-        return await message.reply("❌ **Invalid first link!**")
+    match_first, match_last = regex.match(first), regex.match(last)
+
+    if not match_first or not match_last:
+        return await message.reply("❌ **Invalid link!**\nEnsure both links are from the same channel.")
 
     f_chat_id, f_msg_id = match_first.group(4), int(match_first.group(5))
+    l_chat_id, l_msg_id = match_last.group(4), int(match_last.group(5))
+
     if f_chat_id.isnumeric():
         f_chat_id = int("-100" + f_chat_id)
-
-    # Validate last link
-    match_last = regex.match(last)
-    if not match_last:
-        return await message.reply("❌ **Invalid last link!**")
-
-    l_chat_id, l_msg_id = match_last.group(4), int(match_last.group(5))
     if l_chat_id.isnumeric():
         l_chat_id = int("-100" + l_chat_id)
 
-    # Ensure both links belong to the same chat
     if f_chat_id != l_chat_id:
-        return await message.reply("❌ **Links must be from the same channel!**")
+        return await message.reply("❌ **Chat IDs do not match!**\nEnsure both messages are from the same channel.")
 
-    # Validate access to the chat
     try:
         chat = await bot.get_chat(f_chat_id)
         chat_id = chat.id
-        if not chat.has_protected_content:
-            await bot.get_chat_member(chat_id, "me")
-    except ChatAdminRequired:
-        return await message.reply("❌ **I need admin rights in this channel!**")
     except ChannelInvalid:
-        return await message.reply("❌ **Invalid channel. Add me as an admin.**")
+        return await message.reply("❌ **Invalid Channel!**\nEnsure the bot is an admin.")
     except (UsernameInvalid, UsernameNotModified):
-        return await message.reply("❌ **Invalid link provided!**")
+        return await message.reply("❌ **Invalid Link!**")
     except Exception as e:
         return await message.reply(f"❌ **Error:** `{e}`")
 
-    # Fetch messages
+    # Start Fetching Messages
     sts = await message.reply("⏳ **Fetching messages... Please wait!**")
     outlist = []
     count = 0
 
-    async for msg in bot.iter_messages(f_chat_id, min_id=f_msg_id-1, max_id=l_msg_id+1, reverse=True):
-        if msg.empty or msg.service:
-            continue
-        outlist.append({"channel_id": chat_id, "msg_id": msg.id})
-        count += 1
+    try:
+        async for msg in bot.iter_messages(chat_id, min_id=f_msg_id-1, max_id=l_msg_id+1, reverse=True):
+            if msg.empty or msg.service:
+                continue
+            outlist.append({"channel_id": chat_id, "msg_id": msg.id})
+            count += 1
 
-    # If no messages found
+            if count % 10 == 0:
+                await sts.edit(f"📥 **Fetched {count} messages...**")
+
+    except Exception as e:
+        return await sts.edit(f"❌ **Error fetching messages:** `{e}`")
+
     if not outlist:
         return await sts.edit("❌ **No valid messages found in the given range!**")
 
     # Save to JSON file
-    json_file = f"batch_{message.from_user.id}.json"
-    with open(json_file, "w") as out:
+    json_file = f"batchmode_{message.from_user.id}.json"
+    with open(json_file, "w+") as out:
         json.dump(outlist, out)
 
     # Send JSON file
     post = await bot.send_document(LOG_CHANNEL, json_file, file_name="Batch.json", caption="✅ **Batch Generated.**")
     os.remove(json_file)
 
-    # Generate batch link
+    # Generate Batch Link
     file_id = base64.urlsafe_b64encode(str(post.id).encode()).decode().strip("=")
     share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
-    # Ask user for title and year
+    # Request Title & Year
     title_request_msg = await sts.edit(
-        f"✅ **Batch Link Created!**\n\n🔗 **Link:** {share_link}\n\n"
-        "📌 **Now, send me the title and year like this:**\n"
-        "`Movie Title | Year`"
+        f"✅ **Batch Link Created!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title and year like this:**\n`Inception | 2010`"
     )
 
-    # Store request details
+    # Store request
     title_requests[message.from_user.id] = {
         "message_id": title_request_msg.message_id,
         "share_link": share_link
@@ -184,33 +178,27 @@ async def get_title_year(bot, title_msg):
     expected_message_id = request_data["message_id"]
     share_link = request_data["share_link"]
 
-    # Validate reply context
     if title_msg.reply_to_message.message_id != expected_message_id:
-        return
+        return  # Ignore if it's not a reply to the expected message
 
-    # Validate title format
     if "|" not in title_msg.text:
-        return await title_msg.reply("❌ **Invalid format!**\nUse: `Movie Title | Year`")
+        return await title_msg.reply("❌ **Invalid format!**\nSend like this: `Inception | 2010`")
 
     title, year = map(str.strip, title_msg.text.split("|"))
 
-    # Fetch poster from OMDb
+    # Fetch Poster from OMDb
     url = f"http://www.omdbapi.com/?t={title}&y={year}&apikey={OMDB_API_KEY}"
     response = requests.get(url).json()
-
     poster_url = response.get("Poster") if response.get("Response") == "True" else None
-    imdb_id = response.get("imdbID")
 
-    # Create inline buttons
-    buttons = [
-        [InlineKeyboardButton("🎬 Watch Now", url=share_link)]
-    ]
-    if imdb_id:
-        buttons.append([InlineKeyboardButton("🔍 More Info", url=f"https://www.imdb.com/title/{imdb_id}")])
+    # Create Post with Inline Button
+    buttons = [[InlineKeyboardButton("🎬 Watch Now", url=share_link)]]
+
+    if response.get("imdbID"):
+        buttons.append([InlineKeyboardButton("🔍 More Info", url=f"https://www.imdb.com/title/{response.get('imdbID')}")])
 
     caption = f"🎬 **{title} ({year})**\n\n🔗 **Link:** {share_link}"
 
-    # Send movie post
     if poster_url:
         await bot.send_photo(title_msg.chat.id, poster_url, caption=caption, reply_markup=InlineKeyboardMarkup(buttons))
     else:
@@ -218,5 +206,5 @@ async def get_title_year(bot, title_msg):
 
     await title_msg.reply("✅ **Post created successfully!**")
 
-    # Remove user entry
+    # Remove user entry from dictionary
     del title_requests[user_id]
