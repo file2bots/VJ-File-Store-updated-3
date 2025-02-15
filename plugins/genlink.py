@@ -9,6 +9,7 @@ import os
 import json
 import base64
 import requests
+import asyncio
 from bs4 import BeautifulSoup  
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -114,7 +115,7 @@ async def gen_link_batch(bot, message):
     tot = 0
 
     try:
-        async for msg in bot.iter_messages(f_chat_id, l_msg_id, f_msg_id, limit=1000):  # Limit to 1000 messages
+        async for msg in bot.iter_messages(f_chat_id, min_id=f_msg_id, max_id=l_msg_id, limit=1000):
             tot += 1
             if msg.empty or msg.service:
                 continue
