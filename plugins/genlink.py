@@ -9,8 +9,12 @@ import os
 import json
 import base64
 import requests
-from utils import get_poster
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from imdb import IMDb
+from io import BytesIO
+from PIL import Image
+imdb = IMDb()
+from imdb._exceptions import IMDbDataAccessError
 
 async def allowed(_, __, message):
     if PUBLIC_FILE_STORE:
@@ -79,7 +83,7 @@ async def gen_link_batch(bot, message):
         return await message.reply("Use correct format.\nExample /batch https://t.me/CloudXbotz/41 https://t.me/CloudXbotz/42.")
 
     cmd, first, last = links
-    regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
+    regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(‌\d+)$")
 
     match = regex.match(first)
     if not match:
@@ -111,14 +115,11 @@ async def gen_link_batch(bot, message):
     except Exception as e:
         return await message.reply(f'Error - {e}')
     
-    sts = await message.reply("**Fetching messages... Please wait!**")
-
-    # ✅ FIXED: Use fetch_messages() function
-    messages = await fetch_messages(bot, f_chat_id, f_msg_id, l_msg_id)
+    sts = await message.reply("**Generating link... Please wait!**")
 
     outlist = []
     tot = 0
-    for msg in messages:
+    async for msg in bot.iter_messages(f_chat_id, l_msg_id, f_msg_id):
         tot += 1
         if msg.empty or msg.service:
             continue
@@ -135,46 +136,41 @@ async def gen_link_batch(bot, message):
     file_id = base64.urlsafe_b64encode(str(post.id).encode("ascii")).decode().strip("=")
     share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
-    await sts.edit(f"✅ **Batch Link Generated!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title in this format:**\n`Movie Title`")
+    title_request = await sts.edit(
+        f"✅ **Batch Link Generated!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title and year in this format:**\n`Title (Year)`"
+    )
 
+    filename_message = await bot.ask(
+        text="<b>ɴᴏᴡ sᴇɴᴅ ᴛʜᴇ ɴᴀᴍᴇ ᴏғ ᴛʜᴇ ᴍᴏᴠɪᴇ\n\nᴇx : ᴀɴʙᴇ sɪᴠᴀᴍ (2003) ᴛᴀᴍɪʟ ʜᴅʀɪᴘ</b>",
+        chat_id=message.from_user.id, filters=filters.text, timeout=60
+    )
 
-# **WAIT FOR TITLE & YEAR INPUT**
-@Client.on_message(filters.text & filters.reply)
-async def get_title_year(bot, title_msg):
-    user_id = title_msg.from_user.id
+    @Client.on_message(filters.text & filters.reply)
+    async def get_title_year(bot, title_msg):
+        if title_msg.reply_to_message.message_id != title_request.message_id:
+            return
 
-    if user_id not in user_states or user_states[user_id]["state"] != "awaiting_title":
-        return  # Ignore unrelated messages
+        match = re.match(r"(.+) \((\d{4})\)", title_msg.text.strip())
+        if not match:
+            return await title_msg.reply("❌ Invalid format. Send like this: `Inception (2010)`")
 
-    if "|" not in title_msg.text:
-        return await title_msg.reply("❌ Invalid format. Send like this: `Inception | 2010`")
+        title, year = match.groups()
 
-    title, year = map(str.strip, title_msg.text.split("|"))
+        imdb_info = await get_poster(title)
+        
+        if imdb_info:
+            imdb_image_response = requests.get(imdb_info['poster'])
+            imdb_image_data = io.BytesIO(imdb_image_response.content)
+        else:
+            common_image_url = 'https://telegra.ph/file/74707bb075903640ed3f6.jpg'
+            imdb_image_data = io.BytesIO(requests.get(common_image_url).content)
+        
+        buttons = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🎬 Watch Now", url=share_link)],
+            [InlineKeyboardButton("🔍 More Info", url=f"https://www.imdb.com/title/{imdb_info.get('imdbID')}")] if imdb_info.get("imdbID") else []
+        ])
 
-    # **CLEAN & PROCESS TITLE**
-    title_clean = re.sub(r"[()\[\]{}:;'!]", "", title)
-    cleaned_title = clean_title(title_clean)
-
-    # **FETCH POSTER FROM IMDb**
-    imdb_data = await get_poster(cleaned_title, year)
-    poster = imdb_data.get('poster') if imdb_data else None
-    imdb_id = imdb_data.get('imdbID') if imdb_data else None
-
-    share_link = user_states[user_id]["share_link"]
-
-    # **CREATE POST WITH INLINE BUTTON**
-    buttons = [[InlineKeyboardButton("🎬 Watch Now", url=share_link)]]
-    
-    if imdb_id:
-        buttons.append([InlineKeyboardButton("🔍 More Info", url=f"https://www.imdb.com/title/{imdb_id}")])
-
-    caption = f"🎬 **{title} ({year})**\n\n🔗 **Link:** {share_link}"
-    
-    if poster:
-        await bot.send_photo(title_msg.chat.id, poster, caption=caption, reply_markup=InlineKeyboardMarkup(buttons))
-    else:
-        await bot.send_message(title_msg.chat.id, caption, reply_markup=InlineKeyboardMarkup(buttons))
-
-    await title_msg.reply("✅ **Post created successfully!**")
-
-
+        caption = f"🎬 **{title} ({year})**\n\n🔗 **Link:** {share_link}"
+        
+        await bot.send_photo(message.chat.id, imdb_image_data, caption=caption, reply_markup=buttons)
+        await title_msg.reply("✅ **Post created successfully!**")
