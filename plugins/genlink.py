@@ -68,6 +68,8 @@ async def gen_link_s(bot, message):
 #OMDB_API_KEY = "7cd62fdc"  
 #OMDB_API_KEY = "YOUR_OMDB_API_KEY"
 
+batch_data = {}  # Dictionary to store batch links temporarily
+
 @Client.on_message(filters.command(['batch']) & filters.create(allowed))
 async def gen_link_batch(bot, message):
     username = (await bot.get_me()).username
@@ -133,14 +135,15 @@ async def gen_link_batch(bot, message):
     file_id = base64.urlsafe_b64encode(str(post.id).encode("ascii")).decode().strip("=")
     share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
-    title_request = await sts.edit(
+    batch_data[message.from_user.id] = share_link  # Store the link
+
+    await sts.edit(
         f"✅ **Batch Link Generated!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title and year in this format:**\n`Title | Year`"
     )
 
 @Client.on_message(filters.text & filters.reply)
 async def get_title_year(bot, title_msg):
     try:
-        # Ensure the user is replying to the correct message
         if not title_msg.reply_to_message:
             return
         
@@ -148,6 +151,10 @@ async def get_title_year(bot, title_msg):
             return await title_msg.reply("❌ Invalid format. Send like this: `Inception | 2010`")
 
         title, year = map(str.strip, title_msg.text.split("|"))
+
+        share_link = batch_data.get(title_msg.from_user.id)
+        if not share_link:
+            return await title_msg.reply("❌ Error: Batch link not found. Generate it again!")
 
         imdb_search_url = f"https://www.imdb.com/find?q={title.replace(' ', '+')}+{year}"
         headers = {"User-Agent": "Mozilla/5.0"}
@@ -157,7 +164,7 @@ async def get_title_year(bot, title_msg):
             return await title_msg.reply("❌ IMDb search failed!")
 
         soup = BeautifulSoup(response.text, "html.parser")
-        first_result = soup.select_one(".result_text a")
+        first_result = soup.select_one("td.result_text a")
 
         if not first_result:
             return await title_msg.reply("❌ No results found on IMDb!")
@@ -168,8 +175,8 @@ async def get_title_year(bot, title_msg):
         movie_page = requests.get(movie_url, headers=headers)
         movie_soup = BeautifulSoup(movie_page.text, "html.parser")
 
-        poster_tag = movie_soup.select_one(".ipc-image")
-        poster_url = poster_tag["src"] if poster_tag else None
+        poster_tag = movie_soup.select_one('meta[property="og:image"]')
+        poster_url = poster_tag["content"] if poster_tag else None
 
         if not poster_url:
             return await title_msg.reply("❌ Could not fetch poster!")
