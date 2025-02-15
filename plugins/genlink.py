@@ -64,7 +64,7 @@ async def gen_link_s(bot, message):
     else:
         await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
 
-OMDB_API_KEY = "7cd62fdc"
+OMDB_API_KEY = "YOUR_OMDB_API_KEY"
 
 @Client.on_message(filters.command(['batch']) & filters.create(allowed))
 async def gen_link_batch(bot, message):
@@ -131,11 +131,16 @@ async def gen_link_batch(bot, message):
     file_id = base64.urlsafe_b64encode(str(post.id).encode("ascii")).decode().strip("=")
     share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
-    await sts.edit(f"✅ **Batch Link Generated!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title and year in this format:**\n`Title | Year`")
+    title_request = await sts.edit(
+        f"✅ **Batch Link Generated!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title and year in this format:**\n`Title | Year`"
+    )
 
     # **WAIT FOR TITLE & YEAR INPUT**
-    @bot.on_message(filters.text & filters.reply)
+    @Client.on_message(filters.text & filters.reply)
     async def get_title_year(bot, title_msg):
+        if title_msg.reply_to_message.message_id != title_request.message_id:
+            return  # Ignore unrelated messages
+
         if "|" not in title_msg.text:
             return await title_msg.reply("❌ Invalid format. Send like this: `Inception | 2010`")
 
