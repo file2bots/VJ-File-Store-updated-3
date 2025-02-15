@@ -136,7 +136,7 @@ async def gen_link_batch(bot, message):
         f"✅ **Batch Link Generated!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title and year in this format:**\n`Title | Year`"
     )
 
-    @Client.on_message(filters.text & filters.reply)
+@Client.on_message(filters.text & filters.reply)
 async def get_title_year(bot, title_msg):
     try:
         # Ensure the user is replying to the correct message
