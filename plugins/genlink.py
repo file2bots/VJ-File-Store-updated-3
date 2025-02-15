@@ -111,31 +111,36 @@ async def gen_link_batch(bot, message):
     except Exception as e:
         return await message.reply(f'Error - {e}')
     
-    sts = await message.reply("**Generating link... Please wait!**")
+    sts = await message.reply("⏳ Fetching messages... Please wait!")
 
-    outlist = []
-    tot = 0
-    async for msg in bot.iter_messages(f_chat_id, l_msg_id, f_msg_id):
-        tot += 1
+outlist = []
+tot = 0
+current_msg_id = l_msg_id  # Start from the last message
+
+while current_msg_id >= f_msg_id:
+    messages = await bot.get_messages(f_chat_id, message_ids=list(range(f_msg_id, l_msg_id + 1)))
+    for msg in messages:
         if msg.empty or msg.service:
             continue
-        file = {"channel_id": f_chat_id, "msg_id": msg.id}
-        outlist.append(file)
+        outlist.append({"channel_id": f_chat_id, "msg_id": msg.id})
+        tot += 1
+    current_msg_id -= len(messages)  # Move to the next batch
 
-    json_file = f"batchmode_{message.from_user.id}.json"
-    with open(json_file, "w+") as out:
-        json.dump(outlist, out)
+if not outlist:
+    return await sts.edit("❌ No valid messages found in the given range!")
 
-    post = await bot.send_document(LOG_CHANNEL, json_file, file_name="Batch.json", caption="⚠️ Batch Generated.")
-    os.remove(json_file)
+# ✅ Continue with generating the JSON file...
+json_file = f"batchmode_{message.from_user.id}.json"
+with open(json_file, "w+") as out:
+    json.dump(outlist, out)
 
-    file_id = base64.urlsafe_b64encode(str(post.id).encode("ascii")).decode().strip("=")
-    share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
+post = await bot.send_document(LOG_CHANNEL, json_file, file_name="Batch.json", caption="⚠️ Batch Generated.")
+os.remove(json_file)
 
-    title_request = await sts.edit(
-        f"✅ **Batch Link Generated!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title and year in this format:**\n`Title | Year`"
-    )
+file_id = base64.urlsafe_b64encode(str(post.id).encode("ascii")).decode().strip("=")
+share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
+await sts.edit(f"✅ **Batch Link Generated!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title and year in this format:**\n`Title | Year`")
     # **WAIT FOR TITLE & YEAR INPUT**
 @Client.on_message(filters.text & filters.reply)
 async def get_title_year(bot, title_msg):
