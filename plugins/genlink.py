@@ -65,6 +65,7 @@ async def gen_link_s(bot, message):
         await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
 
 OMDB_API_KEY = "7cd62fdc"
+title_requests = {}
 
 @Client.on_message(filters.command(['batch']) & filters.create(allowed))
 async def gen_link_batch(bot, message):
@@ -78,8 +79,7 @@ async def gen_link_batch(bot, message):
         return await message.reply("Use correct format.\nExample /batch https://t.me/CloudXbotz/41 https://t.me/CloudXbotz/42.")
 
     cmd, first, last = links
-    regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
-
+    regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(")
     match = regex.match(first)
     if not match:
         return await message.reply('Invalid link')
@@ -113,9 +113,7 @@ async def gen_link_batch(bot, message):
     sts = await message.reply("**Generating link... Please wait!**")
 
     outlist = []
-    tot = 0
     async for msg in bot.iter_messages(f_chat_id, l_msg_id, f_msg_id):
-        tot += 1
         if msg.empty or msg.service:
             continue
         file = {"channel_id": f_chat_id, "msg_id": msg.id}
@@ -131,12 +129,12 @@ async def gen_link_batch(bot, message):
     file_id = base64.urlsafe_b64encode(str(post.id).encode("ascii")).decode().strip("=")
     share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
-    title_request = await sts.edit(
+    title_requests[message.from_user.id] = {"message_id": sts.message_id, "share_link": share_link}
+
+    await sts.edit(
         f"✅ **Batch Link Generated!**\n\n🔗 **Link:** {share_link}\n\n📌 **Now, send me the title and year in this format:**\n`Title | Year`"
     )
 
-    # **WAIT FOR TITLE & YEAR INPUT**
-    
 @Client.on_message(filters.text & filters.reply)
 async def get_title_year(bot, title_msg):
     global title_requests
@@ -157,12 +155,10 @@ async def get_title_year(bot, title_msg):
 
     title, year = map(str.strip, title_msg.text.split("|"))
 
-    # **FETCH POSTER FROM OMDb**
     url = f"http://www.omdbapi.com/?t={title}&y={year}&apikey={OMDB_API_KEY}"
     response = requests.get(url).json()
     poster_url = response.get("Poster") if response.get("Response") == "True" else None
 
-    # **CREATE POST WITH INLINE BUTTON**
     buttons = InlineKeyboardMarkup([
         [InlineKeyboardButton("🎬 Watch Now", url=share_link)],
         [InlineKeyboardButton("🔍 More Info", url=f"https://www.imdb.com/title/{response.get('imdbID')}")] if response.get("imdbID") else []
@@ -177,5 +173,4 @@ async def get_title_year(bot, title_msg):
 
     await title_msg.reply("✅ **Post created successfully!**")
 
-    # Remove user entry from dictionary after use
     del title_requests[user_id]
