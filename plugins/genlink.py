@@ -9,6 +9,7 @@ import os
 import json
 import base64
 import requests
+from bs4 import BeautifulSoup  
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 async def allowed(_, __, message):
