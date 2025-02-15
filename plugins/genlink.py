@@ -64,7 +64,7 @@ async def gen_link_s(bot, message):
     else:
         await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
 
-OMDB_API_KEY = "7cd62fdc"
+
 
 import re
 import json
@@ -77,8 +77,8 @@ from pyrogram.errors import (
 )
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-OMDB_API_KEY = "YOUR_OMDB_API_KEY"
-LOG_CHANNEL = "YOUR_LOG_CHANNEL"
+OMDB_API_KEY = "7cd62fdc"
+LOG_CHANNEL = "-1001740524004"
 
 title_requests = {}  # Store pending title requests
 
