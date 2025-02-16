@@ -103,22 +103,18 @@ async def gen_link_batch(bot, message):
     username = (await bot.get_me()).username
     if " " not in message.text:
         return await message.reply("Use correct format.\nExample /batch https://t.me/vj_botz/10 https://t.me/vj_botz/20.")
-    
     links = message.text.strip().split(" ")
     if len(links) != 3:
         return await message.reply("Use correct format.\nExample /batch https://t.me/vj_botz/10 https://t.me/vj_botz/20.")
-    
     cmd, first, last = links
     regex = re.compile("(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
-
     match = regex.match(first)
     if not match:
         return await message.reply('Invalid link')
-    
     f_chat_id = match.group(4)
     f_msg_id = int(match.group(5))
     if f_chat_id.isnumeric():
-        f_chat_id = int("-100" + f_chat_id)
+        f_chat_id = int(("-100" + f_chat_id))
     
     match = regex.match(last)
     if not match:
@@ -174,7 +170,7 @@ async def gen_link_batch(bot, message):
         batch_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
     pending_movies[user_id] = {
-        "batch_link": batch_link,
+        "share_link": batch_link,
         "file_count": og_msg,
         "message": message
     }
