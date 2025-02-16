@@ -10,11 +10,6 @@ import json
 import base64
 import requests
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from imdb import IMDb
-from io import BytesIO
-from PIL import Image
-imdb = IMDb()
-from imdb._exceptions import IMDbDataAccessError
 
 async def allowed(_, __, message):
     if PUBLIC_FILE_STORE:
@@ -83,7 +78,7 @@ async def gen_link_batch(bot, message):
         return await message.reply("Use correct format.\nExample /batch https://t.me/CloudXbotz/41 https://t.me/CloudXbotz/42.")
 
     cmd, first, last = links
-    regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/\(\d+)$")
+    regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
 
     match = regex.match(first)
     if not match:
@@ -151,26 +146,25 @@ async def gen_link_batch(bot, message):
 
         title, year = map(str.strip, title_msg.text.split("|"))
 
-        # **FETCH POSTER FROM get_poster FUNCTION**
-        imdb_info = await get_poster(extract_movie_name(title))
-        
-        # Check if IMDb info is found
-        if imdb_info:
-            # Download the IMDb poster image
-            imdb_image_response = requests.get(imdb_info['poster'])
-            imdb_image_data = io.BytesIO(imdb_image_response.content)
+        # **FETCH POSTER FROM OMDb**
+        url = f"http://www.omdbapi.com/?t={title}&y={year}&apikey={OMDB_API_KEY}"
+        response = requests.get(url).json()
+        if response.get("Response") == "True":
+            poster_url = response.get("Poster", None)
         else:
-            # Use a default image if IMDb info is not found
-            common_image_url = 'https://telegra.ph/file/74707bb075903640ed3f6.jpg'
-            imdb_image_data = io.BytesIO(requests.get(common_image_url).content)
+            poster_url = None
 
         # **CREATE POST WITH INLINE BUTTON**
         buttons = InlineKeyboardMarkup([
             [InlineKeyboardButton("🎬 Watch Now", url=share_link)],
-            [InlineKeyboardButton("🔍 More Info", url=f"https://www.imdb.com/title/{imdb_info['imdbID']}")] if imdb_info and imdb_info.get("imdbID") else []
+            [InlineKeyboardButton("🔍 More Info", url=f"https://www.imdb.com/title/{response.get('imdbID')}")] if response.get("imdbID") else []
         ])
 
         caption = f"🎬 **{title} ({year})**\n\n🔗 **Link:** {share_link}"
         
-        await bot.send_photo(message.chat.id, imdb_image_data, caption=caption, reply_markup=buttons)
+        if poster_url:
+            await bot.send_photo(message.chat.id, poster_url, caption=caption, reply_markup=buttons)
+        else:
+            await bot.send_message(message.chat.id, caption, reply_markup=buttons)
+
         await title_msg.reply("✅ **Post created successfully!**")
