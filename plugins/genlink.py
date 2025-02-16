@@ -158,80 +158,97 @@ from imdb import IMDb
 # Initialize IMDb instance
 imdb = IMDb()
 
-@Client.on_message(filters.command(['postup']) & filters.create(allowed))
-async def gen_link_postup(bot, message):
+# Store user state for linking movie input with batch link
+user_data = {}
+
+@Client.on_message(filters.command(['postup']))
+async def gen_link_batch(bot, message):
     username = (await bot.get_me()).username
+
     if " " not in message.text:
-        return await message.reply("Use correct format.\nExample /postup https://t.me/vj_botz/10 https://t.me/vj_botz/20.")
+        return await message.reply("Use correct format.\nExample: `/postup https://t.me/vj_botz/10 https://t.me/vj_botz/20`")
+    
     links = message.text.strip().split(" ")
     if len(links) != 3:
-        return await message.reply("Use correct format.\nExample /postup https://t.me/vj_botz/10 https://t.me/vj_botz/20.")
-    cmd, first, last = links
-    regex = re.compile("(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(")
-    match = regex.match(first)
-    if not match:
-        return await message.reply('Invalid link')
-    f_chat_id = match.group(4)
-    f_msg_id = int(match.group(5))
-    if f_chat_id.isnumeric():
-        f_chat_id = int("-100" + f_chat_id)
+        return await message.reply("Use correct format.\nExample: `/postup https://t.me/vj_botz/10 https://t.me/vj_botz/20`")
     
-    match = regex.match(last)
-    if not match:
-        return await message.reply('Invalid link')
-    l_chat_id = match.group(4)
-    l_msg_id = int(match.group(5))
-    if l_chat_id.isnumeric():
-        l_chat_id = int("-100" + l_chat_id)
+    _, first, last = links
+    
+    regex = re.compile(r"(https://)?t\.me/([a-zA-Z_0-9]+)/(\d+)")
+    
+    match_first = regex.match(first)
+    match_last = regex.match(last)
+    
+    if not match_first or not match_last:
+        return await message.reply('Invalid link format.')
+    
+    chat_username = match_first.group(2)
+    f_msg_id = int(match_first.group(3))
+    l_msg_id = int(match_last.group(3))
 
-    if f_chat_id != l_chat_id:
-        return await message.reply("Chat IDs do not match.")
     try:
-        chat_id = (await bot.get_chat(f_chat_id)).id
+        chat = await bot.get_chat(chat_username)
+        chat_id = chat.id
     except Exception as e:
         return await message.reply(f'Error: {e}')
-    
+
     sts = await message.reply("**Generating link for your messages...**")
     
     outlist = []
-    async for msg in bot.iter_messages(f_chat_id, l_msg_id, f_msg_id):
+    
+    async for msg in bot.iter_messages(chat_id, l_msg_id, f_msg_id):
         if msg.empty or msg.service:
             continue
-        file = {"channel_id": f_chat_id, "msg_id": msg.id}
+        file = {"channel_id": chat_id, "msg_id": msg.id}
         outlist.append(file)
     
-    with open(f"batchmode_{message.from_user.id}.json", "w+") as out:
+    json_filename = f"batchmode_{message.from_user.id}.json"
+    with open(json_filename, "w") as out:
         json.dump(outlist, out)
-    post = await bot.send_document(LOG_CHANNEL, f"batchmode_{message.from_user.id}.json", file_name="Batch.json", caption="Batch Generated For Filestore.")
-    os.remove(f"batchmode_{message.from_user.id}.json")
+    
+    post = await bot.send_document("LOG_CHANNEL", json_filename, file_name="Batch.json", caption="Batch Generated For Filestore.")
+    
+    os.remove(json_filename)
+
     file_id = base64.urlsafe_b64encode(str(post.id).encode("ascii")).decode().strip("=")
-    
     share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
+
+    user_data[message.from_user.id] = share_link  # Store for later use
+
     await sts.edit("Batch link generated! Now send me the movie title and year in format: `Title (Year)`.\nExample: `Inception (2010)`")
+
+@Client.on_message(filters.text & filters.private)
+async def get_movie_details(bot, msg):
+    user_id = msg.from_user.id
+    if user_id not in user_data:
+        return await msg.reply("Please generate a batch link first using `/postup`.")
+
+    text = msg.text.strip()
+    match = re.match(r"(.+) \((\d{4})\)", text)
+    if not match:
+        return await msg.reply("Invalid format! Please use: `Title (Year)`.\nExample: `Inception (2010)`")
     
-    @Client.on_message(filters.text & filters.private)
-    async def get_movie_details(bot, msg):
-        text = msg.text.strip()
-        match = re.match(r"(.+) \((\d{4})\)", text)
-        if not match:
-            return await msg.reply("Invalid format! Please use: `Title (Year)`. Example: `Inception (2010)`")
-        
-        title, year = match.groups()
-        search_results = imdb.search_movie(title)
-        if not search_results:
-            return await msg.reply("Movie not found on IMDb.")
-        
-        movie = imdb.get_movie(search_results[0].movieID)
-        poster_url = movie.get('full-size cover url', "https://via.placeholder.com/300x450.png?text=No+Poster")
-        
-        await bot.send_photo(
-            chat_id=msg.chat.id,
-            photo=poster_url,
-            caption=f"🎬 *{title} ({year})*\n⭐ Rating: {movie.get('rating', 'N/A')}\n📌 Genres: {', '.join(movie.get('genres', []))}\n📝 Plot: {movie.get('plot outline', 'N/A')}\n[Download Here]({share_link})",
-            parse_mode="Markdown"
-        )
+    title, year = match.groups()
+    search_results = imdb.search_movie(title)
     
-    return
+    if not search_results:
+        return await msg.reply("Movie not found on IMDb.")
+    
+    movie = imdb.get_movie(search_results[0].movieID)
+    poster_url = movie.get('full-size cover url', "https://via.placeholder.com/300x450.png?text=No+Poster")
+
+    share_link = user_data.pop(user_id)  # Retrieve and remove stored link
+
+    await bot.send_photo(
+        chat_id=msg.chat.id,
+        photo=poster_url,
+        caption=f"🎬 *{title} ({year})*\n"
+                f"⭐ Rating: {movie.get('rating', 'N/A')}\n"
+                f"📌 Genres: {', '.join(movie.get('genres', []))}\n"
+                f"📝 Plot: {movie.get('plot outline', 'N/A')}\n\n"
+                f"[Download Here]({share_link})",
+        parse_mode="Markdown"
+    )
 
 #---------------------------------IMDB--------------------------------------#
 
