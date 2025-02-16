@@ -220,7 +220,7 @@ async def gen_link_batch(bot, message):
     file_id = base64.urlsafe_b64encode(str(post.id).encode("ascii")).decode().strip("=")
     share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
     
-    # Save generated link for user
+    # Save user data
     user_data[message.from_user.id] = {"link": share_link}
 
     await sts.edit("Batch link generated! Now send me the movie title.")
