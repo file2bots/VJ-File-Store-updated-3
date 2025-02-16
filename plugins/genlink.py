@@ -153,13 +153,13 @@ import json
 import os
 import base64
 import requests
-from pyrogram.errors import ChannelInvalid, UsernameInvalid, UsernameNotModified
+from imdb import IMDb
 
-# Set your OMDb API Key
-OMDB_API_KEY = "7cd62fdc"
+# Initialize IMDb instance
+imdb = IMDb()
 
 @Client.on_message(filters.command(['postup']) & filters.create(allowed))
-async def gen_link_batch(bot, message):
+async def gen_link_postup(bot, message):
     username = (await bot.get_me()).username
     if " " not in message.text:
         return await message.reply("Use correct format.\nExample /postup https://t.me/vj_botz/10 https://t.me/vj_botz/20.")
@@ -188,10 +188,6 @@ async def gen_link_batch(bot, message):
         return await message.reply("Chat IDs do not match.")
     try:
         chat_id = (await bot.get_chat(f_chat_id)).id
-    except ChannelInvalid:
-        return await message.reply('This may be a private channel/group. Make me an admin to index the files.')
-    except (UsernameInvalid, UsernameNotModified):
-        return await message.reply('Invalid link specified.')
     except Exception as e:
         return await message.reply(f'Error: {e}')
     
@@ -221,17 +217,129 @@ async def gen_link_batch(bot, message):
             return await msg.reply("Invalid format! Please use: `Title (Year)`. Example: `Inception (2010)`")
         
         title, year = match.groups()
-        response = requests.get(f"http://www.omdbapi.com/?t={title}&y={year}&apikey={OMDB_API_KEY}")
-        movie_data = response.json()
-        poster_url = movie_data.get("Poster", "https://via.placeholder.com/300x450.png?text=No+Poster")
+        search_results = imdb.search_movie(title)
+        if not search_results:
+            return await msg.reply("Movie not found on IMDb.")
+        
+        movie = imdb.get_movie(search_results[0].movieID)
+        poster_url = movie.get('full-size cover url', "https://via.placeholder.com/300x450.png?text=No+Poster")
         
         await bot.send_photo(
             chat_id=msg.chat.id,
             photo=poster_url,
-            caption=f"🎬 *{title} ({year})*\n[Download Here]({share_link})",
+            caption=f"🎬 *{title} ({year})*\n⭐ Rating: {movie.get('rating', 'N/A')}\n📌 Genres: {', '.join(movie.get('genres', []))}\n📝 Plot: {movie.get('plot outline', 'N/A')}\n[Download Here]({share_link})",
             parse_mode="Markdown"
         )
     
     return
 
+#---------------------------------IMDB--------------------------------------#
 
+async def get_poster(query, bulk=False, id=False, file=None):
+    if not id:
+        query = query.strip().lower()
+        title = query
+        year = re.findall(r'[1-2]\d{3}$', query, re.IGNORECASE)
+        if year:
+            year = list_to_str(year[:1])
+            title = (query.replace(year, "")).strip()
+        elif file is not None:
+            year = re.findall(r'[1-2]\d{3}', file, re.IGNORECASE)
+            if year:
+                year = list_to_str(year[:1])
+        else:
+            year = None
+        movieid = imdb.search_movie(title.lower(), results=10)
+        if not movieid:
+            return None
+        if year:
+            filtered = list(filter(lambda k: str(k.get('year')) == str(year), movieid))
+            if not filtered:
+                filtered = movieid
+        else:
+            filtered = movieid
+        movieid = list(filter(lambda k: k.get('kind') in ['movie', 'tv series'], filtered))
+        if not movieid:
+            movieid = filtered
+        if bulk:
+            return movieid
+        movieid = movieid[0].movieID
+    else:
+        movieid = query
+    movie = imdb.get_movie(movieid)
+    if movie.get("original air date"):
+        date = movie["original air date"]
+    elif movie.get("year"):
+        date = movie.get("year")
+    else:
+        date = "N/A"
+    plot = ""
+    if not True:  # Replace True with the condition you want
+        plot = movie.get('plot')
+        if plot and len(plot) > 0:
+            plot = plot[0]
+    else:
+        plot = movie.get('plot outline')
+    if plot and len(plot) > 800:
+        plot = plot[0:800] + "..."
+
+    return {
+        'title': movie.get('title'),
+        'votes': movie.get('votes'),
+        "aka": list_to_str(movie.get("akas")),
+        "seasons": movie.get("number of seasons"),
+        "box_office": movie.get('box office'),
+        'localized_title': movie.get('localized title'),
+        'kind': movie.get("kind"),
+        "imdb_id": f"tt{movie.get('imdbID')}",
+        "cast": list_to_str(movie.get("cast")),
+        "runtime": list_to_str(movie.get("runtimes")),
+        "countries": list_to_str(movie.get("countries")),
+        "certificates": list_to_str(movie.get("certificates")),
+        "languages": list_to_str(movie.get("languages")),
+        "director": list_to_str(movie.get("director")),
+        "writer": list_to_str(movie.get("writer")),
+        "producer": list_to_str(movie.get("producer")),
+        "composer": list_to_str(movie.get("composer")),
+        "cinematographer": list_to_str(movie.get("cinematographer")),
+        "music_team": list_to_str(movie.get("music department")),
+        "distributors": list_to_str(movie.get("distributors")),
+        'release_date': date,
+        'year': movie.get('year'),
+        'genres': list_to_str(movie.get("genres")),
+        'poster': movie.get('full-size cover url'),
+        'plot': plot,
+        'rating': str(movie.get("rating")),
+        'url': f'https://www.imdb.com/title/tt{movieid}'
+    }
+
+
+@Bot.on_message(filters.command('imdb') & filters.private)
+async def imdb_command(bot: bot, message: Message):
+    if len(message.command) < 2:
+        await message.reply("Please provide a movie name with the /imdb command.")
+        return
+
+    movie_name = ' '.join(message.command[1:])
+    
+    try:
+        poster_info = await get_poster(movie_name)
+        
+        if poster_info:
+            # Download the poster image
+            image_response = requests.get(poster_info['poster'])
+            image_data = io.BytesIO(image_response.content)
+
+            # Send the poster image as a photo along with other details
+            await bot.send_photo(
+                chat_id=message.chat.id,
+                photo=image_data,
+                caption=f'Movie Poster for {poster_info["title"]}\n'
+                        f'Rating: {poster_info["rating"]}\n'
+                        f'Genres: {poster_info["genres"]}\n'
+                        f'Plot: {poster_info["plot"]}\n'
+                        f'IMDb URL: {poster_info["url"]}'
+            )
+
+        else:
+            await message.reply_text('Movie not found. Please check the movie name and try again.')
