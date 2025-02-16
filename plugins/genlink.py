@@ -165,9 +165,9 @@ async def gen_link_batch(bot, message):
     
     user_id = message.from_user.id
     if WEBSITE_URL_MODE:
-        batch_link = f"{WEBSITE_URL}?Tech_VJ=BATCH-{file_id}"
+        share_link = f"{WEBSITE_URL}?Tech_VJ=BATCH-{file_id}"
     else:
-        batch_link = f"https://t.me/{username}?start=BATCH-{file_id}"
+        share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
     pending_movies[user_id] = {
         "share_link": batch_link,
@@ -210,7 +210,7 @@ async def receive_movie_details(bot, message):
         photo=imdb_image_data,
         caption=f"🎬 **Movie Title:** {title}\n📅 **Year:** {year}\n📁 **Total Files:** {file_count}\n\n👇 Click the button below to access the files!",
         reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton(f"{title} ({year})", url=batch_link)]]
+            [[InlineKeyboardButton(f"{title} ({year})", url=share_link)]]
         )
     )
 
