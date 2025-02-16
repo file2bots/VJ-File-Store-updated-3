@@ -64,7 +64,7 @@ async def gen_link_s(bot, message):
     else:
         await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
 
-OMDB_API_KEY = "7cd62fdc"
+#OMDB_API_KEY = "7cd62fdc"
 
 @Client.on_message(filters.command(['batch']) & filters.create(allowed))
 async def gen_link_batch(bot, message):
@@ -160,7 +160,7 @@ from pyrogram.errors import ChannelInvalid, UsernameInvalid, UsernameNotModified
 OMDB_API_KEY = "7cd62fdc"
 
 @Client.on_message(filters.command(['postup']) & filters.create(allowed))
-async def gen_link_batch(bot, message):
+async def gen_link_postup(bot, message):
     username = (await bot.get_me()).username
     if " " not in message.text:
         return await message.reply("Use correct format.\nExample: `/postup https://t.me/vj_botz/10 https://t.me/vj_botz/20`.")
@@ -215,7 +215,7 @@ async def gen_link_batch(bot, message):
     os.remove(f"batchmode_{message.from_user.id}.json")
     
     file_id = base64.urlsafe_b64encode(str(post.id).encode("ascii")).decode().strip("=")
-    share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
+    share_link = f"https://t.me/{username}?start=postup-{file_id}"
     
     await sts.edit("Batch link generated! Now send me the movie title.")
 
