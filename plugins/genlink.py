@@ -165,7 +165,7 @@ async def gen_link_batch(bot, message):
     
     user_id = message.from_user.id
     if WEBSITE_URL_MODE:
-        share_link = f"{WEBSITE_URL}?Tech_VJ=BATCH-{file_id}"
+        share_link = f"{WEBSITE_URL}?start=BATCH-{file_id}"
     else:
         share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
@@ -296,7 +296,7 @@ async def get_poster(query, bulk=False, id=False, file=None):
     }
 
 
-@Bot.on_message(filters.command('imdb') & filters.private)
+@Client.on_message(filters.command('imdb') & filters.private)
 async def imdb_command(client: Client, message: Message):
     if len(message.command) < 2:
         await message.reply("Please provide a movie name with the /imdb command.")
