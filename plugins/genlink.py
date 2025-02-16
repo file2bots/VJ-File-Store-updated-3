@@ -158,8 +158,11 @@ from imdb import IMDb
 # Initialize IMDb instance
 imdb = IMDb()
 
-# Store user state for linking movie input with batch link
+# Define a dictionary to store user-generated links
 user_data = {}
+
+# Replace this with your actual log channel ID
+LOG_CHANNEL = -1001234567890  
 
 @Client.on_message(filters.command(['postup']))
 async def gen_link_batch(bot, message):
@@ -173,7 +176,7 @@ async def gen_link_batch(bot, message):
         return await message.reply("Use correct format.\nExample: `/postup https://t.me/vj_botz/10 https://t.me/vj_botz/20`")
     
     _, first, last = links
-    
+
     regex = re.compile(r"(https://)?t\.me/([a-zA-Z_0-9]+)/(\d+)")
     
     match_first = regex.match(first)
@@ -206,14 +209,15 @@ async def gen_link_batch(bot, message):
     with open(json_filename, "w") as out:
         json.dump(outlist, out)
     
-    post = await bot.send_document("LOG_CHANNEL", json_filename, file_name="Batch.json", caption="Batch Generated For Filestore.")
+    post = await bot.send_document(LOG_CHANNEL, json_filename, file_name="Batch.json", caption="Batch Generated For Filestore.")
     
     os.remove(json_filename)
 
     file_id = base64.urlsafe_b64encode(str(post.id).encode("ascii")).decode().strip("=")
     share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
-    user_data[message.from_user.id] = share_link  # Store for later use
+    # Store the generated link for this user
+    user_data[message.from_user.id] = share_link
 
     await sts.edit("Batch link generated! Now send me the movie title and year in format: `Title (Year)`.\nExample: `Inception (2010)`")
 
@@ -249,6 +253,7 @@ async def get_movie_details(bot, msg):
                 f"[Download Here]({share_link})",
         parse_mode="Markdown"
     )
+
 
 #---------------------------------IMDB--------------------------------------#
 
