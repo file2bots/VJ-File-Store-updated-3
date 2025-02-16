@@ -153,28 +153,21 @@ import json
 import os
 import base64
 import requests
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import ChannelInvalid, UsernameInvalid, UsernameNotModified
 
 # Set your OMDb API Key
 OMDB_API_KEY = "7cd62fdc"
 
-# Store user data
-user_data = {}
-
 @Client.on_message(filters.command(['postup']) & filters.create(allowed))
 async def gen_link_batch(bot, message):
     username = (await bot.get_me()).username
     if " " not in message.text:
-        return await message.reply("Use correct format.\nExample: `/postup https://t.me/vj_botz/10 https://t.me/vj_botz/20`.")
-    
+        return await message.reply("Use correct format.\nExample /postup https://t.me/vj_botz/10 https://t.me/vj_botz/20.")
     links = message.text.strip().split(" ")
     if len(links) != 3:
-        return await message.reply("Use correct format.\nExample: `/postup https://t.me/vj_botz/10 https://t.me/vj_botz/20`.")
-    
+        return await message.reply("Use correct format.\nExample /postup https://t.me/vj_botz/10 https://t.me/vj_botz/20.")
     cmd, first, last = links
-    regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
-
+    regex = re.compile("(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(")
     match = regex.match(first)
     if not match:
         return await message.reply('Invalid link')
@@ -213,57 +206,32 @@ async def gen_link_batch(bot, message):
     
     with open(f"batchmode_{message.from_user.id}.json", "w+") as out:
         json.dump(outlist, out)
-    
     post = await bot.send_document(LOG_CHANNEL, f"batchmode_{message.from_user.id}.json", file_name="Batch.json", caption="Batch Generated For Filestore.")
     os.remove(f"batchmode_{message.from_user.id}.json")
-    
     file_id = base64.urlsafe_b64encode(str(post.id).encode("ascii")).decode().strip("=")
+    
     share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
+    await sts.edit("Batch link generated! Now send me the movie title and year in format: `Title (Year)`.\nExample: `Inception (2010)`")
     
-    # Save user data
-    user_data[message.from_user.id] = {"link": share_link}
-
-    await sts.edit("Batch link generated! Now send me the movie title.")
-
-@Client.on_message(filters.text & filters.private)
-async def get_movie_details(bot, message):
-    user_id = message.from_user.id
-    
-    # Check if user has started the process
-    if user_id not in user_data:
-        return
-    
-    if "title" not in user_data[user_id]:
-        user_data[user_id]["title"] = message.text
-        return await message.reply("Got it! Now send me the release year.")
-    
-    if "year" not in user_data[user_id]:
-        user_data[user_id]["year"] = message.text
-
-        # Fetch movie details
-        title = user_data[user_id]["title"]
-        year = user_data[user_id]["year"]
-        share_link = user_data[user_id]["link"]
-
+    @Client.on_message(filters.text & filters.private)
+    async def get_movie_details(bot, msg):
+        text = msg.text.strip()
+        match = re.match(r"(.+) \((\d{4})\)", text)
+        if not match:
+            return await msg.reply("Invalid format! Please use: `Title (Year)`. Example: `Inception (2010)`")
+        
+        title, year = match.groups()
         response = requests.get(f"http://www.omdbapi.com/?t={title}&y={year}&apikey={OMDB_API_KEY}")
         movie_data = response.json()
         poster_url = movie_data.get("Poster", "https://via.placeholder.com/300x450.png?text=No+Poster")
-
-        # Creating inline button
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📥 Download Files", url=share_link)]
-        ])
-
+        
         await bot.send_photo(
-            chat_id=message.chat.id,
+            chat_id=msg.chat.id,
             photo=poster_url,
-            caption=f"🎬 *{title} ({year})*\nClick below to download the files!",
-            reply_markup=keyboard,
+            caption=f"🎬 *{title} ({year})*\n[Download Here]({share_link})",
             parse_mode="Markdown"
         )
-
-        # Remove user data after completion
-        del user_data[user_id]
-
+    
+    return
 
 
