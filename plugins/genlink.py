@@ -218,7 +218,7 @@ async def gen_link_batch(bot, message):
     os.remove(f"batchmode_{message.from_user.id}.json")
     
     file_id = base64.urlsafe_b64encode(str(post.id).encode("ascii")).decode().strip("=")
-    share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
+    share_link = f"https://t.me/{username}?start=postup-{file_id}"
     
     # Save user data
     user_data[message.from_user.id] = {"link": share_link}
