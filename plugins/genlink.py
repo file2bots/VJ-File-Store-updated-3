@@ -11,7 +11,7 @@ import requests
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # Setup logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 async def allowed(_, __, message):
@@ -45,36 +45,50 @@ async def incoming_gen_link(bot, message):
         logger.info(f"🎬 Title: {title}, 🗓 Year: {year}, 📺 Quality: {quality}, 🗣 Language: {language}")
 
         # Fetch poster and IMDb data
-        imdb_data = await get_poster(title, id=False)
-        logger.info(f"🎞 IMDb Data Fetched: {imdb_data}")
-
-        poster_url = imdb_data.get("poster", None)
-        imdb_url = imdb_data.get("url", "")
-        plot = imdb_data.get("plot", "No description available.")
+        try:
+            imdb_data = await get_poster(title, id=False)
+            poster_url = imdb_data.get("poster", None)
+            imdb_url = imdb_data.get("url", "")
+            plot = imdb_data.get("plot", "No description available.")
+            logger.info(f"🎞 IMDb Data Fetched: {imdb_data}")
+        except Exception as e:
+            logger.error(f"⚠️ IMDb Fetching Failed: {e}")
+            poster_url, imdb_url, plot = None, "", "IMDb Data Not Available."
 
         # Send file to DB_CHANNEL
-        logger.info(f"📤 Sending file to DB_CHANNEL: {DB_CHANNEL}")
-        db_message = await message.copy(DB_CHANNEL)
-        file_id = str(db_message.id)
-        logger.info(f"✅ File stored in DB_CHANNEL with ID: {file_id}")
+        try:
+            logger.info(f"📤 Sending file to DB_CHANNEL: {DB_CHANNEL}")
+            db_message = await message.copy(DB_CHANNEL)
+            file_id = str(db_message.id)
+            logger.info(f"✅ File stored in DB_CHANNEL with ID: {file_id}")
+        except Exception as e:
+            logger.error(f"❌ Failed to send file to DB_CHANNEL: {e}")
+            return
 
         # Send notification to NOTIFY_CHANNEL
         notify_text = (f"**📢 New File Added**\n\n🎬 **Title:** {title}\n📅 **Year:** {year}\n🖥 **Quality:** {quality}\n🗣 **Language:** {language}\n\n📖 **Plot:** {plot}\n🔗 [IMDb Link]({imdb_url})")
 
-        if poster_url:
-            await bot.send_photo(NOTIFY_CHANNEL, poster_url, caption=notify_text)
-            logger.info("✅ Poster sent to NOTIFY_CHANNEL")
-        else:
-            await bot.send_message(NOTIFY_CHANNEL, notify_text)
-            logger.info("✅ Text notification sent to NOTIFY_CHANNEL")
+        try:
+            if poster_url:
+                await bot.send_photo(NOTIFY_CHANNEL, poster_url, caption=notify_text)
+                logger.info("✅ Poster sent to NOTIFY_CHANNEL")
+            else:
+                await bot.send_message(NOTIFY_CHANNEL, notify_text)
+                logger.info("✅ Text notification sent to NOTIFY_CHANNEL")
+        except Exception as e:
+            logger.error(f"❌ Failed to send notification to NOTIFY_CHANNEL: {e}")
 
         # Generate short link
         logger.info("🔗 Generating short link...")
-        short_link = await get_short_link(file_id)
-        if short_link:
-            logger.info(f"✅ Short link generated: {short_link}")
-        else:
-            logger.warning("⚠️ Failed to generate short link!")
+        try:
+            short_link = await get_short_link(file_id)
+            if short_link:
+                logger.info(f"✅ Short link generated: {short_link}")
+            else:
+                logger.warning("⚠️ Failed to generate short link!")
+        except Exception as e:
+            logger.error(f"❌ Short link generation failed: {e}")
+            short_link = "#"
 
         reply_markup = InlineKeyboardMarkup([
             [InlineKeyboardButton("📥 Download", url=short_link if short_link else "#")],
@@ -90,3 +104,4 @@ async def incoming_gen_link(bot, message):
 
     except Exception as e:
         logger.error(f"❌ Error in processing: {e}")
+        logger.exception(e)  # Logs full traceback for debugging
