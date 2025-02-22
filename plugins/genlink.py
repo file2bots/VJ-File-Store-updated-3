@@ -21,39 +21,42 @@ async def allowed(_, __, message):
         return True
     return False
 
+async def send_msg(bot, filename, caption): 
+    try:
+        filename = re.sub(r'\(\@\S+\)|\[\@\S+\]|\b@\S+|\bwww\.\S+', '', filename).strip()
+        caption = re.sub(r'\(\@\S+\)|\[\@\S+\]|\b@\S+|\bwww\.\S+', '', caption).strip()
+        
+        year_match = re.search(r"\b(19|20)\d{2}\b", caption)
+        year = year_match.group(0) if year_match else "Unknown"
+
+        qualities = ["ORG", "hdcam", "HQ", "HDRip", "camrip", "hdtc", "predvd", "DVDscr", "dvdrip", "HDTC", "HDTS"]
+        quality = await get_qualities(caption.lower(), qualities) or "HDRip"
+
+        language = "English"  # Default assumption, modify logic to detect
+
+        imdb = await get_poster(filename, id=False)
+        poster_url = imdb.get("poster", None)
+        imdb_url = imdb.get("url", "")
+        plot = imdb.get("plot", "IMDb Data Not Available.")
+
+        text = f"**📢 New File Added**\n\n🎬 **Title:** {filename}\n📅 **Year:** {year}\n🖥 **Quality:** {quality}\n🗣 **Language:** {language}\n\n📖 **Plot:** {plot}\n🔗 [IMDb Link]({imdb_url})"
+        
+        btn = [[InlineKeyboardButton('🌲 Get Files 🌲', url=f"https://telegram.me/{bot.username}?start=getfile-{filename.replace(' ', '-')}")]]
+        
+        if poster_url:
+            await bot.send_photo(NOTIFY_CHANNEL, poster_url, caption=text, reply_markup=InlineKeyboardMarkup(btn))
+        else:              
+            await bot.send_message(NOTIFY_CHANNEL, text, reply_markup=InlineKeyboardMarkup(btn))
+    except Exception as e:
+        logger.error(f"❌ Error in send_msg: {e}")
+
 @Client.on_message((filters.document | filters.video | filters.audio) & filters.private & filters.create(allowed))
 async def incoming_gen_link(bot, message):
     try:
         logger.info("📩 New file received!")
 
-        username = (await bot.get_me()).username
-        file_type = message.media
-
-        # Extract title, quality, and language from file name
         file_name = message.document.file_name if message.document else message.video.file_name if message.video else "Unknown"
         logger.info(f"📂 File Name: {file_name}")
-
-        match = re.match(r"(.+?)\s*(\d{4})?\s*(\d+p)?\s*([a-zA-Z]+)?", file_name)
-        if match:
-            title = match.group(1).strip()
-            year = match.group(2) if match.group(2) else "Unknown"
-            quality = match.group(3) if match.group(3) else "Unknown"
-            language = match.group(4) if match.group(4) else "Unknown"
-        else:
-            title, year, quality, language = "Unknown", "Unknown", "Unknown", "Unknown"
-
-        logger.info(f"🎬 Title: {title}, 🗓 Year: {year}, 📺 Quality: {quality}, 🗣 Language: {language}")
-
-        # Fetch poster and IMDb data
-        try:
-            imdb_data = await get_poster(title, id=False)
-            poster_url = imdb_data.get("poster", None)
-            imdb_url = imdb_data.get("url", "")
-            plot = imdb_data.get("plot", "No description available.")
-            logger.info(f"🎞 IMDb Data Fetched: {imdb_data}")
-        except Exception as e:
-            logger.error(f"⚠️ IMDb Fetching Failed: {e}")
-            poster_url, imdb_url, plot = None, "", "IMDb Data Not Available."
 
         # Send file to DB_CHANNEL
         try:
@@ -65,18 +68,8 @@ async def incoming_gen_link(bot, message):
             logger.error(f"❌ Failed to send file to DB_CHANNEL: {e}")
             return
 
-        # Send notification to NOTIFY_CHANNEL
-        notify_text = (f"**📢 New File Added**\n\n🎬 **Title:** {title}\n📅 **Year:** {year}\n🖥 **Quality:** {quality}\n🗣 **Language:** {language}\n\n📖 **Plot:** {plot}\n🔗 [IMDb Link]({imdb_url})")
-
-        try:
-            if poster_url:
-                await bot.send_photo(NOTIFY_CHANNEL, poster_url, caption=notify_text)
-                logger.info("✅ Poster sent to NOTIFY_CHANNEL")
-            else:
-                await bot.send_message(NOTIFY_CHANNEL, notify_text)
-                logger.info("✅ Text notification sent to NOTIFY_CHANNEL")
-        except Exception as e:
-            logger.error(f"❌ Failed to send notification to NOTIFY_CHANNEL: {e}")
+        # Send notification using send_msg
+        await send_msg(bot, file_name, file_name)
 
         # Generate short link
         logger.info("🔗 Generating short link...")
@@ -92,16 +85,15 @@ async def incoming_gen_link(bot, message):
 
         reply_markup = InlineKeyboardMarkup([
             [InlineKeyboardButton("📥 Download", url=short_link if short_link else "#")],
-            [InlineKeyboardButton("🔄 Share", switch_inline_query=title)]
+            [InlineKeyboardButton("🔄 Share", switch_inline_query=file_name)]
         ])
 
         await message.reply_text(
-            f"**✅ Your file is ready:**\n🎬 **{title}**\n📥 [Download]({short_link})",
+            f"**✅ Your file is ready:**\n🎬 **{file_name}**\n📥 [Download]({short_link})",
             reply_markup=reply_markup,
             disable_web_page_preview=True
         )
         logger.info("✅ Reply sent to user")
-
     except Exception as e:
         logger.error(f"❌ Error in processing: {e}")
         logger.exception(e)  # Logs full traceback for debugging
