@@ -2,36 +2,13 @@ import re
 from pyrogram import filters, Client, enums
 from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified
 from pyrogram.errors import ChannelInvalid, UsernameInvalid, UsernameNotModified
-from config import ADMINS, LOG_CHANNEL, NOTIFY_CHANNEL, PUBLIC_FILE_STORE, WEBSITE_URL, WEBSITE_URL_MODE
+from config import ADMINS, DB_CHANNEL, NOTIFY_CHANNEL, PUBLIC_FILE_STORE, WEBSITE_URL, WEBSITE_URL_MODE
 from plugins.users_api import get_user, get_short_link
 from plugins.imdb_api import get_poster  # Import IMDb poster fetching function
 import os
 import json
 import requests
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from imdb import IMDb
-imdb = IMDb()
-
-async def get_poster(query, id=False):
-    if not id:
-        query = query.strip().lower()
-        movie_list = imdb.search_movie(query)
-        if not movie_list:
-            return None
-        movie = imdb.get_movie(movie_list[0].movieID)
-    else:
-        movie = imdb.get_movie(query)
-
-    if not movie:
-        return None
-
-    return {
-        'title': movie.get('title'),
-        'year': movie.get('year'),
-        'poster': movie.get('full-size cover url'),
-        'plot': movie.get('plot outline', 'No description available.'),
-        'url': f"https://www.imdb.com/title/tt{movie.movieID}/"
-    }
 
 async def allowed(_, __, message):
     if PUBLIC_FILE_STORE:
@@ -44,8 +21,6 @@ async def allowed(_, __, message):
 async def incoming_gen_link(bot, message):
     username = (await bot.get_me()).username
     file_type = message.media
-    post = await message.copy(LOG_CHANNEL)
-    file_id = str(post.id)
     
     # Extract title, quality, and language from file name
     file_name = message.document.file_name if message.document else message.video.file_name if message.video else "Unknown"
@@ -64,7 +39,11 @@ async def incoming_gen_link(bot, message):
     imdb_url = imdb_data.get("url", "")
     plot = imdb_data.get("plot", "No description available.")
     
-    # Send notification to another channel
+    # Send file to DB_CHANNEL
+    db_message = await message.copy(DB_CHANNEL)
+    file_id = str(db_message.id)
+    
+    # Send notification to NOTIFY_CHANNEL
     notify_text = (f"**New File Added**\n\n🎬 **Title:** {title}\n📅 **Year:** {year}\n🖥 **Quality:** {quality}\n🗣 **Language:** {language}\n\n📖 **Plot:** {plot}\n🔗 [IMDb Link]({imdb_url})")
     
     if poster_url:
