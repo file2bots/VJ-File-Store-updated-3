@@ -44,6 +44,7 @@ AUTO_DELETE_TIME = int(environ.get("AUTO_DELETE_TIME", "600")) # Time in Seconds
 # Channel Information
 LOG_CHANNEL = int(environ.get("LOG_CHANNEL", "-1001740524004"))
 
+DB_CHANNEL = int(environ.get("LOG_CHANNEL", "-1002063814391"))
 NOTIFY_CHANNEL = int(environ.get("NOTIFY_CHANNEL", "-1002308357802"))
 
 # File Caption Information
