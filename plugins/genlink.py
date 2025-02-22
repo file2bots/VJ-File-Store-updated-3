@@ -10,6 +10,12 @@ import json
 import requests
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
 async def allowed(_, __, message):
     if PUBLIC_FILE_STORE:
         return True
