@@ -81,6 +81,21 @@ else:
     ON_HEROKU = False
 URL = environ.get("URL", "https://storefilesget.koyeb.app/")
 
+#Newfeatures vars developer - Anshvachhani99 ✨🌸
+DIRECT_GEN_DB = int(os.environ.get("DIRECT_GEN_DB", "-1001740524004"))
+DIRECT_GEN_URL = os.environ.get("DIRECT_GEN_URL", "https://roxylinkzz-filter-bot.koyeb.app/")
+DIRECT_GEN = bool(DIRECT_GEN_DB and DIRECT_GEN_URL)
+
+POST_MODE= bool(environ.get('POST_MODE', True))
+POST_SHORT_API = environ.get('POST_SHORT_API', '')
+POST_SHORT_URL = environ.get('POST_SHORT_URL', '')
+
+
+#POST_SHORT_API = environ.get('POST_SHORT_API', '6a0a4f826e12f701a433063ebbe730caa1c29c38')
+#POST_SHORT_URL = environ.get('POST_SHORT_URL', 'modijiurl.com')
+
+HOW_TO_POST_SHORT = environ.get('HOW_TO_POST_SHORT', 'https://t.me/Howtodowloa/13')
+
 
 
     
