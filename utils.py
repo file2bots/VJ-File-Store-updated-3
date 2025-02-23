@@ -1,4 +1,8 @@
 import logging, asyncio, os, re, random, pytz, aiohttp, requests, string, json, http.client
+from pyrogram.types import Message
+from pyrogram.types import Message  # Fixes 'Message' not defined error
+from urllib.parse import quote_plus  # Required for URL encoding in gen_link
+from pyrogram import Client  # If you use bot.get_users anywhere
 from datetime import date, datetime
 from config import SHORTLINK_API, SHORTLINK_URL, POST_SHORT_API, POST_SHORT_URL, POST_MODE, DIRECT_GEN, DIRECT_GEN_URL, DIRECT_GEN_DB
 from shortzy import Shortzy
