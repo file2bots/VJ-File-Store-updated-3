@@ -44,7 +44,11 @@ AUTO_DELETE_TIME = int(environ.get("AUTO_DELETE_TIME", "600")) # Time in Seconds
 # Channel Information
 LOG_CHANNEL = int(environ.get("LOG_CHANNEL", "-1001740524004"))
 
-DB_CHANNEL = int(environ.get("LOG_CHANNEL", "-1002063814391"))
+INDEX_REQ_CHANNEL = int(environ.get('INDEX_REQ_CHANNEL', LOG_CHANNEL))
+
+CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHANNELS', '-1002063814391').split()] 
+
+DB_CHANNEL = int(environ.get("DB_CHANNEL", "-1002063814391"))
 NOTIFY_CHANNEL = int(environ.get("NOTIFY_CHANNEL", "-1002308357802"))
 
 # File Caption Information
@@ -83,18 +87,19 @@ URL = environ.get("URL", "https://storefilesget.koyeb.app/")
 
 #Newfeatures vars developer - Anshvachhani99 ✨🌸
 DIRECT_GEN_DB = int(os.environ.get("DIRECT_GEN_DB", "-1001740524004"))
-DIRECT_GEN_URL = os.environ.get("DIRECT_GEN_URL", "https://roxylinkzz-filter-bot.koyeb.app/")
+DIRECT_GEN_URL = os.environ.get("DIRECT_GEN_URL", "https://storefilesget.koyeb.app/")
 DIRECT_GEN = bool(DIRECT_GEN_DB and DIRECT_GEN_URL)
 
 POST_MODE= bool(environ.get('POST_MODE', True))
 POST_SHORT_API = environ.get('POST_SHORT_API', '')
 POST_SHORT_URL = environ.get('POST_SHORT_URL', '')
 
+HOW_TO_POST_SHORT = environ.get('HOW_TO_POST_SHORT', 'https://t.me/Howtodowloa/13')
 
 #POST_SHORT_API = environ.get('POST_SHORT_API', '6a0a4f826e12f701a433063ebbe730caa1c29c38')
 #POST_SHORT_URL = environ.get('POST_SHORT_URL', 'modijiurl.com')
 
-HOW_TO_POST_SHORT = environ.get('HOW_TO_POST_SHORT', 'https://t.me/Howtodowloa/13')
+
 
 
 
