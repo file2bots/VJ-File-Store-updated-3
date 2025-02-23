@@ -1,5 +1,4 @@
 import logging, asyncio, os, re, random, pytz, aiohttp, requests, string, json, http.client
-from pyrogram.types import Message
 from pyrogram.types import Message  # Fixes 'Message' not defined error
 from urllib.parse import quote_plus  # Required for URL encoding in gen_link
 from pyrogram import Client  # If you use bot.get_users anywhere
