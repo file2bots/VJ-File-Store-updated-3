@@ -3,7 +3,7 @@ from struct import pack
 from pyrogram.file_id import FileId
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
-from info import DB_URI, DB_NAME
+from config import DB_URI, DB_NAME
 
 # First Database For File Saving 
 client = MongoClient(FILE_DB_URI)
