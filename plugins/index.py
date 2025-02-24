@@ -4,7 +4,7 @@
 
 import logging, re, asyncio
 from utils import temp
-from info import ADMINS
+from config import ADMINS
 from pyrogram import Client, filters, enums
 from pyrogram.errors import FloodWait, MessageNotModified
 from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, ChatAdminRequired, UsernameInvalid, UsernameNotModified
