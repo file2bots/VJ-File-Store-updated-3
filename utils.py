@@ -1,12 +1,19 @@
 import logging, asyncio, os, re, random, pytz, aiohttp, requests, string, json, http.client
 from datetime import date, datetime
-from config import SHORTLINK_API, SHORTLINK_URL
+from config import SHORTLINK_API, SHORTLINK_URL, POST_SHORT_API, POST_SHORT_URL, POST_MODE, DIRECT_GEN, DIRECT_GEN_URL, DIRECT_GEN_DB
 from shortzy import Shortzy
+from imdb import Cinemagoer 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+imdb = Cinemagoer() 
 TOKENS = {}
 VERIFIED = {}
+
+class temp(object):
+    IMDB_CAP = {}
+
 
 async def get_verify_shorted_link(link):
     if SHORTLINK_URL == "api.shareus.io":
@@ -74,3 +81,97 @@ async def check_verification(bot, userid):
             return True
     else:
         return False
+
+#------------------------------------Post Code--------------------------------------------------#
+#POST FEATURES 
+
+def humanbytes(size):
+    # https://stackoverflow.com/a/49361727/4723940
+    # 2**10 = 1024
+    if not size:
+        return ""
+    power = 2**10
+    n = 0
+    Dic_powerN = {0: ' ', 1: 'Ki', 2: 'Mi', 3: 'Gi', 4: 'Ti'}
+    while size > power:
+        size /= power
+        n += 1
+    return f"{str(round(size, 2))} {Dic_powerN[n]}B"
+
+def get_size(size):
+    """Get size in readable format"""
+
+    units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
+    size = float(size)
+    i = 0
+    while size >= 1024.0 and i < len(units):
+        i += 1
+        size /= 1024.0
+    return "%.2f %s" % (size, units[i])
+
+def get_media_from_message(message: "Message") :
+    media_types = (
+        "audio",
+        "document",
+        "photo",
+        "sticker",
+        "animation",
+        "video",
+        "voice",
+        "video_note",
+    )
+    for attr in media_types:
+        media = getattr(message, attr, None)
+        if media:
+            return media
+            
+def clean_title(title_clean):
+    # Regular expression to match the title and year with optional text afterwards
+    match = re.match(r'^(.*?)(\d{4})(?:\s.*|$)', title_clean, re.IGNORECASE)
+    if match:
+        
+        title_cleaned = match.group(1).strip()
+        year = match.group(2).strip()
+        return f"{title_cleaned.capitalize()} {year}"  
+    return title_clean 
+
+def get_name(media_msg: Message) -> str:
+    media = get_media_from_message(media_msg)
+    return str(getattr(media, "file_name", "None"))
+
+def get_hash(media_msg: Message) -> str:
+    media = get_media_from_message(media_msg)
+    return getattr(media, "file_unique_id", "")[:6]
+
+async def gen_link(log_msg: Message):
+    """Generate Text for Stream Link, Reply Text and reply_markup
+    r : return page_link, stream_link
+    page_link : stream page link
+    stream_link : download link
+    """
+    page_link = f"{DIRECT_GEN_URL}watch/{get_hash(log_msg)}{log_msg.id}"
+    stream_link = f"{DIRECT_GEN_URL}{log_msg.id}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
+    # short    
+    return page_link, stream_link
+
+async def short_link(link):
+    if not POST_MODE:
+        return link
+    # Replace the placeholders with your actual API key and base URL
+    api_key = POST_SHORT_API
+    base_site = POST_SHORT_URL
+
+    if not (api_key and base_site):
+        return link
+
+    shortzy = Shortzy(api_key, base_site)
+    short_link = await shortzy.convert(link)
+
+    return short_link
+
+async def delete_previous_reply(chat_id):
+    if chat_id in user_states and "last_reply" in user_states[chat_id]:
+        try:
+            await user_states[chat_id]["last_reply"].delete()
+        except Exception as e:
+            print(f"Failed to delete message: {e}")
