@@ -20,7 +20,7 @@ async def delete_previous_reply(chat_id):
 @Client.on_message(filters.command("post") & filters.user(ADMINS))
 async def post_command(client, message):
     try:
-        await message.reply("**Wᴇʟᴄᴏᴍᴇ Tᴏ Usᴇ Oᴜʀ Rᴀʀᴇ Mᴏᴠɪᴇ Pᴏsᴛ Fᴇᴀᴛᴜʀᴇ🙂**\n\n"
+        await message.reply("**Wᴇʟᴄᴏᴍᴇ Tᴏ Rᴀʀᴇ Mᴏᴠɪᴇ Pᴏsᴛ Fᴇᴀᴛᴜʀᴇ🙂**\n\n"
                             "**👉🏻Sᴇɴᴅ ᴛʜᴇ ɴᴜᴍʙᴇʀ ᴏғ ғɪʟᴇs ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴀᴅᴅ👈🏻**\n\n"
                             "**‼️ Nᴏᴛᴇ: Oɴʟʏ ɴᴜᴍʙᴇʀ**", disable_web_page_preview=True)
         user_states[message.chat.id] = {"state": "awaiting_num_files"}
@@ -62,13 +62,13 @@ async def handle_message(client, message):
                     file_type = message.media
                     forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
                     file_id = unpack_new_file_id(getattr(message, file_type.value).file_id)
-                    log_msg = await message.copy(chat_id=DIRECT_GEN_DB)
 
                     size = get_size(getattr(message, file_type.value).file_size)
                     await message.delete()
                 else:
                     forwarded_message = await message.forward(chat_id=DIRECT_GEN_DB)
                     file_id = forwarded_message.message_id
+                    size = "Unknown"
 
                 user_states[chat_id]["file_ids"].append(file_id)
                 user_states[chat_id]["file_sizes"].append(size)
@@ -78,12 +78,10 @@ async def handle_message(client, message):
                 num_files_left = user_states[chat_id]["num_files"] - files_received
 
                 if num_files_left > 0:
-                    files_text = "ғɪʟᴇ" if files_received == 1 else "ғɪʟᴇs"
-                    reply_message = await message.reply(f"**⏩ Fᴏʀᴡᴀʀᴅ ᴛʜᴇ ɴᴏ: {files_received + 1} {files_text}**")
+                    reply_message = await message.reply(f"**⏩ Fᴏʀᴡᴀʀᴅ ᴛʜᴇ ɴᴏ: {files_received + 1} ғɪʟᴇ**")
                     user_states[chat_id]["last_reply"] = reply_message
                 else:
-                    reply_message = await message.reply("**ɴᴏᴡ sᴇɴᴅ ᴛʜᴇ ɴᴀᴍᴇ ᴏғ ᴛʜᴇ ᴍᴏᴠɪᴇ (ᴏʀ) ᴛɪᴛʟᴇ **\n\n"
-                                                        "**ᴇx: ʟᴏᴠᴇʀ 𝟸𝟶𝟸𝟺 ᴛᴀᴍɪʟ ᴡᴇʙᴅʟ**")
+                    reply_message = await message.reply("**ɴᴏᴡ sᴇɴᴅ ᴛʜᴇ ɴᴀᴍᴇ ᴏғ ᴛʜᴇ ᴍᴏᴠɪᴇ (ᴏʀ) ᴛɪᴛʟᴇ **")
                     user_states[chat_id]["state"] = "awaiting_title"
                     user_states[chat_id]["last_reply"] = reply_message
 
@@ -102,6 +100,10 @@ async def handle_message(client, message):
                 for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
                     long_url = f"https://t.me/{temp.U_NAME}?start=file_{file_id[0]}"
                     short_link_url = await short_link(long_url)
+
+                    if not short_link_url or "http" not in short_link_url:  # ✅ Fixing Empty or Invalid Short Links
+                        short_link_url = long_url  # Fall back to long link
+
                     btn_text = f"{user_states[chat_id]['file_sizes'][i]} ({resolution}) 🔗"
                     buttons.append([InlineKeyboardButton(btn_text, url=short_link_url)])
 
