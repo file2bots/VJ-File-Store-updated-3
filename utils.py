@@ -167,18 +167,27 @@ async def get_poster(query, bulk=False, id=False, file=None):
 
 #POST FEATURES 
 
-def humanbytes(size):
-    # https://stackoverflow.com/a/49361727/4723940
-    # 2**10 = 1024
+def humanbytes(size: int) -> str:
+    """Convert bytes to a human-readable format (KiB, MiB, GiB, etc.) and round up to nearest 50."""
     if not size:
-        return ""
-    power = 2**10
+        return "0 B"
+    
+    power = 2**10  # 1024
     n = 0
-    Dic_powerN = {0: ' ', 1: 'Ki', 2: 'Mi', 3: 'Gi', 4: 'Ti'}
-    while size > power:
-        size /= power
+    units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]
+
+    while size >= power and n < len(units) - 1:
+        size //= power  # Use floor division to remove decimals
         n += 1
-    return f"{str(round(size, 2))} {Dic_powerN[n]}B"
+
+    # Round up to nearest 50
+    size = ((size + 49) // 50) * 50  
+
+    return f"{size} {units[n]}"
+
+def get_size(size: int) -> str:
+    """Wrapper function to call humanbytes."""
+    return humanbytes(size)
 
 def get_media_from_message(message: "Message") :
     media_types = (
