@@ -20,7 +20,7 @@ async def delete_previous_reply(chat_id):
 @Client.on_message(filters.command("post") & filters.user(ADMINS))
 async def post_command(client, message):
     try:
-        await message.reply("**Wᴇʟᴄᴏᴍᴇ Tᴏ Rᴀʀᴇ Mᴏᴠɪᴇ Pᴏsᴛ Fᴇᴀᴛᴜʀᴇ🙂**\n\n"
+        await message.reply("**Wᴇʟᴄᴏᴍᴇ Tᴏ Oᴜʀ Rᴀʀᴇ Mᴏᴠɪᴇ Pᴏsᴛ Fᴇᴀᴛᴜʀᴇ🙂**\n\n"
                             "**👉🏻Sᴇɴᴅ ᴛʜᴇ ɴᴜᴍʙᴇʀ ᴏғ ғɪʟᴇs ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴀᴅᴅ👈🏻**\n\n"
                             "**‼️ Nᴏᴛᴇ: Oɴʟʏ ɴᴜᴍʙᴇʀ**", disable_web_page_preview=True)
         user_states[message.chat.id] = {"state": "awaiting_num_files"}
@@ -53,25 +53,23 @@ async def handle_message(client, message):
                     }
                     reply_message = await message.reply("**⏩ Fᴏʀᴡᴀʀᴅ ᴛʜᴇ ɴᴏ: 1 ғɪʟᴇ**")
                     user_states[chat_id]["last_reply"] = reply_message
-
                 except ValueError:
                     await message.reply("Invalid input. Please enter a valid number.")
 
             elif current_state == "awaiting_files":
-                if message.media:
-                    file_type = message.media
-                    forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
-                    file_id = unpack_new_file_id(getattr(message, file_type.value).file_id)
+                file_id = None
+                size = "Unknown"
 
-                    size = get_size(getattr(message, file_type.value).file_size)
-                    await message.delete()
-                else:
-                    forwarded_message = await message.forward(chat_id=DIRECT_GEN_DB)
-                    file_id = forwarded_message.message_id
-                    size = "Unknown"
+                if message.document:
+                    file_id = unpack_new_file_id(message.document.file_id)
+                    size = get_size(message.document.file_size)
+                elif message.video:
+                    file_id = unpack_new_file_id(message.video.file_id)
+                    size = get_size(message.video.file_size)
 
-                user_states[chat_id]["file_ids"].append(file_id)
-                user_states[chat_id]["file_sizes"].append(size)
+                if file_id:
+                    user_states[chat_id]["file_ids"].append(file_id)
+                    user_states[chat_id]["file_sizes"].append(size)
 
                 user_states[chat_id]["files_received"] += 1
                 files_received = user_states[chat_id]["files_received"]
@@ -81,7 +79,7 @@ async def handle_message(client, message):
                     reply_message = await message.reply(f"**⏩ Fᴏʀᴡᴀʀᴅ ᴛʜᴇ ɴᴏ: {files_received + 1} ғɪʟᴇ**")
                     user_states[chat_id]["last_reply"] = reply_message
                 else:
-                    reply_message = await message.reply("**ɴᴏᴡ sᴇɴᴅ ᴛʜᴇ ɴᴀᴍᴇ ᴏғ ᴛʜᴇ ᴍᴏᴠɪᴇ (ᴏʀ) ᴛɪᴛʟᴇ **")
+                    reply_message = await message.reply("**ɴᴏᴡ sᴇɴᴅ ᴛʜᴇ ɴᴀᴍᴇ ᴏғ ᴛʜᴇ ᴍᴏᴠɪᴇ (ᴏʀ) ᴛɪᴛʟᴇ**")
                     user_states[chat_id]["state"] = "awaiting_title"
                     user_states[chat_id]["last_reply"] = reply_message
 
@@ -100,15 +98,12 @@ async def handle_message(client, message):
                 for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
                     long_url = f"https://t.me/{temp.U_NAME}?start=file_{file_id[0]}"
                     short_link_url = await short_link(long_url)
-
-                    if not short_link_url or "http" not in short_link_url:  # ✅ Fixing Empty or Invalid Short Links
-                        short_link_url = long_url  # Fall back to long link
-
+                    if not short_link_url.startswith("http"):
+                        short_link_url = "https://example.com"  # Fallback URL
                     btn_text = f"{user_states[chat_id]['file_sizes'][i]} ({resolution}) 🔗"
                     buttons.append([InlineKeyboardButton(btn_text, url=short_link_url)])
 
                 keyboard = InlineKeyboardMarkup(buttons)
-
                 summary_message = f"**🎬 {title} Tamil HDRip**\n\n" \
                                   f"**[ 𝟹𝟼𝟶ᴘ☆𝟺𝟾𝟶ᴘ☆Hᴇᴠᴄ☆𝟽𝟸𝟶ᴘ☆𝟷𝟶𝟾𝟶ᴘ ]✌**\n\n" \
                                   f"**✅ Note: [Hᴏᴡ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ]({HOW_TO_POST_SHORT})👀**\n\n" \
@@ -122,6 +117,5 @@ async def handle_message(client, message):
 
                 await message.delete()
                 del user_states[chat_id]
-
     except Exception as e:
         await message.reply(f"Error occurred: {e}")
