@@ -6,8 +6,11 @@ class script(object):
 
 ⚙️ sɪᴢᴇ : {file_size}
 
-🌹 𝐉𝐨𝐢𝐧 ➠ [ 𝐔ᴘᴅᴀᴛᴇ 𝐂ʜᴀɴɴᴇʟ ](https://t.me/TamilMob_Zone)
-🍀 𝐉𝐨𝐢𝐧 ➠ [ 𝐌ᴏᴠɪᴇ 𝐒ᴇᴀʀᴄʜ ʙᴏᴛ ](https://t.me/SimplySearchBot)</b>""" 
+🌹  𝐉𝐨𝐢𝐧 ➠ [ 𝐌ᴀɪɴ 𝐂ʜᴀɴɴᴇʟ ](https://t.me/TamilMobZone) 
+
+✨ 𝐉𝐨𝐢𝐧 ➠ [ 𝐃ᴀɪʟʏ 𝐔ᴘᴅᴀᴛᴇ𝐬 ](https://t.me/TamilMobZone)
+
+🍀 𝐉𝐨𝐢𝐧 ➠ [ 𝐌ᴏᴠɪᴇ 𝐒ᴇᴀʀᴄʜ  ](https://t.me/+6QFNHZzurnFjY2Jl)</b>""" 
 
     SHORTENER_API_MESSAGE = """<b>Tᴏ ᴀᴅᴅ ᴏʀ ᴜᴘᴅᴀᴛᴇ ʏᴏᴜʀ Sʜᴏʀᴛɴᴇʀ Wᴇʙsɪᴛᴇ API, /api (ᴀᴘɪ)
             
@@ -78,8 +81,7 @@ First Send /clone command then follow below steps.
 
 🔻 /api - sᴇᴛ ʏᴏᴜʀ ᴜʀʟ sʜᴏʀᴛɴᴇʀ ᴀᴄᴄᴏᴜɴᴛ ᴀᴘɪ 
 ᴇx - /api ʙᴀᴏᴡɢᴡᴋʟᴀᴀʙᴀᴋʟ
-
-🔻 /deletecloned - ᴜsᴇ ᴛʜɪs ғᴏʀ ᴅᴇʟᴇᴛᴇ ʏᴏᴜʀ ᴄʟᴏɴᴇ ʙᴏᴛ 
+ 
 
 🔻 /broadcast - ʀᴇᴘʟʏ ᴛᴏ ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ ʙʀᴏᴀᴅᴄᴀsᴛ (ʙᴏᴛ ᴏᴡɴᴇʀ ᴏɴʟʏ)</b>"""
 
