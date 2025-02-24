@@ -3,6 +3,7 @@ from datetime import date, datetime
 from config import SHORTLINK_API, SHORTLINK_URL, POST_SHORT_API, POST_SHORT_URL, POST_MODE, DIRECT_GEN, DIRECT_GEN_URL, DIRECT_GEN_DB
 from shortzy import Shortzy
 from imdb import Cinemagoer 
+from urllib.parse import quote_plus
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
