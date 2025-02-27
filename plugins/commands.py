@@ -459,8 +459,8 @@ async def post(client: Client, message: Message):
             print(f"Error in getting forward message: {e}")
             return
         
-        post_message1 = await forward_message.copy(chat_id=CHANNEL_ID, disable_notification=True)
-        post_message = await forward_message.copy(chat_id=BIN_CHANNEL, disable_notification=True)
+        post_message1 = await forward_message.copy(chat_id=LOG_CHANNEL, disable_notification=True)
+        post_message = await forward_message.copy(chat_id=LOG_CHANNEL, disable_notification=True)
         media = forward_message.document or forward_message.video
         media_list.append((media, post_message1.id, forward_message, post_message.id))
         await forward_message.delete()
@@ -479,7 +479,7 @@ async def post(client: Client, message: Message):
     online_links = []
 
     for i, (media, msg_id, forward_message, post_message_id) in enumerate(media_list):
-        string = f"get-{msg_id * abs(CHANNEL_ID)}"
+        string = f"get-{msg_id * abs(LOG_CHANNEL)}"
         base64_string = await encode(string)
         file_size = humanbytes(media.file_size) if media.file_size else ""
         linkk = await get_shortlink(f"{RXL}/{base64_string}")
