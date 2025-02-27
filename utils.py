@@ -1,22 +1,16 @@
-import logging, asyncio, os, re, random, pytz, aiohttp, requests, string, json, http.client
+import logging, asyncio, os, re, random, pytz, aiohttp, requests, string, json, base64, http.client
 from datetime import date, datetime
-from config import SHORTLINK_API, SHORTLINK_URL, POST_SHORT_API, POST_SHORT_URL, POST_MODE, DIRECT_GEN, DIRECT_GEN_URL, DIRECT_GEN_DB
-from pyrogram.types import Message
-
+from config import SHORTLINK_API, SHORTLINK_URL
 from shortzy import Shortzy
-from imdb import Cinemagoer 
-from urllib.parse import quote_plus
+from pyrogram import filters
+from pyrogram.enums import ChatMemberStatus
+from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
+from pyrogram.errors import FloodWait
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-imdb = Cinemagoer() 
 TOKENS = {}
 VERIFIED = {}
-
-class temp(object):
-    IMDB_CAP = {}
-
 
 async def get_verify_shorted_link(link):
     if SHORTLINK_URL == "api.shareus.io":
@@ -85,177 +79,60 @@ async def check_verification(bot, userid):
     else:
         return False
 
-#----------------IMDB------------------------#
-async def get_poster(query, bulk=False, id=False, file=None):
-    if not id:
-        query = (query.strip()).lower()
-        title = query
-        year = re.findall(r'[1-2]\d{3}$', query, re.IGNORECASE)
-        if year:
-            year = list_to_str(year[:1])
-            title = (query.replace(year, "")).strip()
-        elif file is not None:
-            year = re.findall(r'[1-2]\d{3}', file, re.IGNORECASE)
-            if year:
-                year = list_to_str(year[:1]) 
-        else:
-            year = None
-        movieid = imdb.search_movie(title.lower(), results=10)
-        if not movieid:
-            return None
-        if year:
-            filtered=list(filter(lambda k: str(k.get('year')) == str(year), movieid))
-            if not filtered:
-                filtered = movieid
-        else:
-            filtered = movieid
-        movieid=list(filter(lambda k: k.get('kind') in ['movie', 'tv series'], filtered))
-        if not movieid:
-            movieid = filtered
-        if bulk:
-            return movieid
-        movieid = movieid[0].movieID
-    else:
-        movieid = query
-    movie = imdb.get_movie(movieid)
-    if not movie:
-        return None
-    if movie.get("original air date"):
-        date = movie["original air date"]
-    elif movie.get("year"):
-        date = movie.get("year")
-    else:
-        date = "N/A"
-    plot = ""
-    if not LONG_IMDB_DESCRIPTION:
-        plot = movie.get('plot')
-        if plot and len(plot) > 0:
-            plot = plot[0]
-    else:
-        plot = movie.get('plot outline')
-    if plot and len(plot) > 800:
-        plot = plot[0:800] + "..."
 
-    return {
-        'title': movie.get('title'),
-        'votes': movie.get('votes'),
-        "aka": list_to_str(movie.get("akas")),
-        "seasons": movie.get("number of seasons"),
-        "box_office": movie.get('box office'),
-        'localized_title': movie.get('localized title'),
-        'kind': movie.get("kind"),
-        "imdb_id": f"tt{movie.get('imdbID')}",
-        "cast": list_to_str(movie.get("cast")),
-        "runtime": list_to_str(movie.get("runtimes")),
-        "countries": list_to_str(movie.get("countries")),
-        "certificates": list_to_str(movie.get("certificates")),
-        "languages": list_to_str(movie.get("languages")),
-        "director": list_to_str(movie.get("director")),
-        "writer":list_to_str(movie.get("writer")),
-        "producer":list_to_str(movie.get("producer")),
-        "composer":list_to_str(movie.get("composer")) ,
-        "cinematographer":list_to_str(movie.get("cinematographer")),
-        "music_team": list_to_str(movie.get("music department")),
-        "distributors": list_to_str(movie.get("distributors")),
-        'release_date': date,
-        'year': movie.get('year'),
-        'genres': list_to_str(movie.get("genres")),
-        'poster': movie.get('full-size cover url'),
-        'plot': plot,
-        'rating': str(movie.get("rating")),
-        'url':f'https://www.imdb.com/title/tt{movieid}'
-    }
+async def get_messages(client, message_ids):
+    messages = []
+    total_messages = 0
+    while total_messages != len(message_ids):
+        temb_ids = message_ids[total_messages:total_messages+200]
+        try:
+            msgs = await client.get_messages(
+                chat_id=client.db_channel.id,
+                message_ids=temb_ids
+            )
+        except FloodWait as e:
+            await asyncio.sleep(e.x)
+            msgs = await client.get_messages(
+                chat_id=client.db_channel.id,
+                message_ids=temb_ids
+            )
+        except:
+            pass
+        total_messages += len(temb_ids)
+        messages.extend(msgs)
+    return messages
 
-#------------------------------------Post Code--------------------------------------------------#
-#POST FEATURES 
+async def get_message_id(client, message):
+    if message.forward_from_chat:
+        if message.forward_from_chat.id == client.db_channel.id:
+            return message.forward_from_message_id
+        else:
+            return 0
+    elif message.forward_sender_name:
+        return 0
+    elif message.text:
+        pattern = "https://t.me/(?:c/)?(.*)/(\d+)"
+        matches = re.match(pattern,message.text)
+        if not matches:
+            return 0
+        channel_id = matches.group(1)
+        msg_id = int(matches.group(2))
+
 
 def humanbytes(size):
-    # https://stackoverflow.com/a/49361727/4723940
-    # 2**10 = 1024
     if not size:
         return ""
-    power = 2**10
-    n = 0
-    Dic_powerN = {0: ' ', 1: 'Ki', 2: 'Mi', 3: 'Gi', 4: 'Ti'}
-    while size > power:
-        size /= power
-        n += 1
-    return f"{str(round(size, 2))} {Dic_powerN[n]}B"
+    
+    size_in_mb = size / (1024 * 1024)  # Convert size to megabytes
 
-def get_size(size):
-    """Get size in readable format"""
-
-    units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
-    size = float(size)
-    i = 0
-    while size >= 1024.0 and i < len(units):
-        i += 1
-        size /= 1024.0
-    return "%.2f %s" % (size, units[i])
-
-def get_media_from_message(message: "Message") :
-    media_types = (
-        "audio",
-        "document",
-        "photo",
-        "sticker",
-        "animation",
-        "video",
-        "voice",
-        "video_note",
-    )
-    for attr in media_types:
-        media = getattr(message, attr, None)
-        if media:
-            return media
-            
-def clean_title(title_clean):
-    # Regular expression to match the title and year with optional text afterwards
-    match = re.match(r'^(.*?)(\d{4})(?:\s.*|$)', title_clean, re.IGNORECASE)
-    if match:
-        
-        title_cleaned = match.group(1).strip()
-        year = match.group(2).strip()
-        return f"{title_cleaned.capitalize()} {year}"  
-    return title_clean 
-
-def get_name(media_msg: Message) -> str:
-    media = get_media_from_message(media_msg)
-    return str(getattr(media, "file_name", "None"))
-
-def get_hash(media_msg: Message) -> str:
-    media = get_media_from_message(media_msg)
-    return getattr(media, "file_unique_id", "")[:6]
-
-async def gen_link(log_msg: Message):
-    """Generate Text for Stream Link, Reply Text and reply_markup
-    r : return page_link, stream_link
-    page_link : stream page link
-    stream_link : download link
-    """
-    page_link = f"{DIRECT_GEN_URL}watch/{get_hash(log_msg)}{log_msg.id}"
-    stream_link = f"{DIRECT_GEN_URL}{log_msg.id}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
-    # short    
-    return page_link, stream_link
-
-async def short_link(link):
-    if not POST_MODE:
-        return link
-    # Replace the placeholders with your actual API key and base URL
-    api_key = POST_SHORT_API
-    base_site = POST_SHORT_URL
-
-    if not (api_key and base_site):
-        return link
-
-    shortzy = Shortzy(api_key, base_site)
-    short_link = await shortzy.convert(link)
-
-    return short_link
-
-async def delete_previous_reply(chat_id):
-    if chat_id in user_states and "last_reply" in user_states[chat_id]:
-        try:
-            await user_states[chat_id]["last_reply"].delete()
-        except Exception as e:
-            print(f"Failed to delete message: {e}")
+    if size_in_mb < 1:
+        # If size is less than 1 MB, round to the nearest 1 MB
+        return f"{round(size_in_mb)}MB"
+    elif size_in_mb < 1000:
+        # If size is less than 1000 MB (1 GB), round to the nearest 10 MB
+        rounded_size = round(size_in_mb, -1)
+        return f"{int(rounded_size) if rounded_size.is_integer() else rounded_size}MB"
+    else:
+        # If size is 1000 MB or greater, round to the nearest 100 MB
+        rounded_size_gb = round(size_in_mb / 10) / 100
+        return f"{int(rounded_size_gb) if rounded_size_gb.is_integer() else rounded_size_gb:.2f}GB"
