@@ -27,7 +27,7 @@ from asyncio import TimeoutError
 from CloudXbotz.utils.file_properties import get_name, get_hash, get_media_file_size
 logger = logging.getLogger(__name__)
 
-db = Database(DB_URI, name)
+db = Database(DB_URI, DB_NAME)
 CMD = ["/", "."]
 from imdb import IMDb
 from io import BytesIO
