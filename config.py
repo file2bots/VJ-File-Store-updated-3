@@ -77,10 +77,10 @@ if 'DYNO' in environ:
 else:
     ON_HEROKU = False
 URL = environ.get("URL", "https://storefilesget.koyeb.app/")
-RXL = environ.get("RXL", "https://t.me/AdvFilesShareBot")
+#RXL = environ.get("RXL", "https://t.me/AdvFilesShareBot")
 
 
-CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1001740524004"))
+#CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1001740524004"))
 
 
 
