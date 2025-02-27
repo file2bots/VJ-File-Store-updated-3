@@ -1,10 +1,11 @@
-
-
+import re
 import os
+import io
 import logging
 import random
 import asyncio
 from validators import domain
+from shortzy import Shortzy
 from Script import script
 from plugins.dbusers import db
 from pyrogram import Client, filters, enums
@@ -12,14 +13,28 @@ from plugins.users_api import get_user, update_user_info
 from pyrogram.errors import ChatAdminRequired, FloodWait
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.types import *
+from utils import get_message_id
 from utils import verify_user, check_token, check_verification, get_token
 from config import *
-import re
 import json
 import base64
+import requests
+from telethon.tl import types
+from utils import humanbytes
 from urllib.parse import quote_plus
+from plugins.dbusers import Database
+from asyncio import TimeoutError
 from CloudXbotz.utils.file_properties import get_name, get_hash, get_media_file_size
 logger = logging.getLogger(__name__)
+
+db = Database(DB_URI, name)
+CMD = ["/", "."]
+from imdb import IMDb
+from io import BytesIO
+from PIL import Image
+imdb = IMDb()
+from imdb._exceptions import IMDbDataAccessError
+#--------------------------------
 
 BATCH_FILES = {}
 async def is_subscribed(bot, query, channel):
@@ -398,121 +413,514 @@ async def cb_handler(client: Client, query: CallbackQuery):
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
         )  
-        
-#--------------------------------------Post Code-----------------------------------------#
-#poster make features developer - Ansh Vachhani
-
-import re
-import logging
-from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong
-import unpack_new_file_id
-from pyrogram.errors import ChatAdminRequired, FloodWait
-from pyrogram import Client, filters
-from pyrogram.types import Message
-from utils import get_size, gen_link, clean_title, get_poster, temp, short_link
-from config import HOW_TO_POST_SHORT, ADMINS, DIRECT_GEN_DB
-
-def unpack_new_file_id(new_file_id):
-    """Return file_id"""
-    decoded = FileId.decode(new_file_id)
-    file_id = encode_file_id(
-        pack(
-            "<iiqq",
-            int(decoded.file_type),
-            decoded.dc_id,
-            decoded.media_id,
-            decoded.access_hash
-        )
-    )
-    return file_id
-
-user_states = {}
-
-async def delete_previous_reply(chat_id):
-    if chat_id in user_states and "last_reply" in user_states[chat_id]:
-        try:
-            await user_states[chat_id]["last_reply"].delete()
-        except Exception as e:
-            print(f"Failed to delete message: {e}")
 
 
-@Client.on_message(filters.command("post") & filters.user(ADMINS))
-async def post_command(client, message):
+#--------------------------------SHORTENER------------------------------------------------#
+
+async def get_shortlink(link):
+    url = 'https://modijiurl.com/api'
+    params = {'api': SHORTENER_API, 'url': link}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, params=params, raise_for_status=True, ssl=False) as response:
+            data = await response.json()
+            return data["shortenedUrl"]
+
+
+#--------------------------------SHORTENER------------------------------------------------#
+
+
+#----------------------------------POST------------------------------------------------------#
+
+
+
+
+
+@Bot.on_message(filters.private & filters.user(ADMINS) & filters.command('post'))
+async def post(client: Client, message: Message):
     try:
-        await message.reply("**Wᴇʟᴄᴏᴍᴇ Tᴏ Usᴇ Oᴜʀ Rᴀʀᴇ Mᴏᴠɪᴇ Pᴏsᴛ Fᴇᴀᴛᴜʀᴇ:) Cᴏᴅᴇ ʙʏ [Rᴏxʏ ʟɪɴᴋᴢᴢ](https://t.me/PKlinkzz_admin_bot) 👨‍💻**\n\n**👉🏻Sᴇɴᴅ ᴛʜᴇ ɴᴜᴍʙᴇʀ ᴏғ ғɪʟᴇs ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴀᴅᴅ👈🏻**\n\n**‼️ ɴᴏᴛᴇ : Oɴʟʏ ɴᴜᴍʙᴇʀ**", disable_web_page_preview=True)
-        user_states[message.chat.id] = {"state": "awaiting_num_files"}
+        num_files = await client.ask(
+            text="<b>ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴜsᴇ ᴏᴜʀ ʀᴀʀᴇ ᴍᴏᴠɪᴇ ᴘᴏsᴛ ғᴇᴀᴛᴜʀᴇ :) ᴄᴏᴅᴇᴅ ʙʏ <a href=https://t.me/NovaXTG>ɴᴏᴠᴀxᴛɢ</a> 👨🏼‍💻\n\n👉🏻 sᴇɴᴅ ᴛʜᴇ ɴᴜᴍʙᴇʀ ᴏғ ғɪʟᴇs ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴀᴅᴅ 👈🏻\n\n‼️ ɴᴏᴛᴇ : ᴏɴʟʏ ɴᴜᴍʙᴇʀ</b>",
+            chat_id=message.from_user.id, filters=filters.text, timeout=60,
+            disable_web_page_preview=True
+        )
+        num_files = int(num_files.text)
     except Exception as e:
-        await message.reply(f"Error occurred: {e}")
-
-
-
-@Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("post"))
-async def handle_message(client, message):
-    chat_id = message.chat.id
-
-    if chat_id not in user_states:
-        return  # Ignore if the user is not in a state
-
-    state = user_states[chat_id]["state"]
-
-    if state == "awaiting_num_files":
+        print(f"Error in getting number of files: {e}")
+        return
+    media_list = []
+    for i in range(num_files):
         try:
-            num_files = int(message.text.strip())
-            if num_files <= 0:
-                await message.reply("❌ Invalid number. Please send a positive number.")
-                return
-            
-            user_states[chat_id] = {
-                "state": "awaiting_files",
-                "num_files": num_files,
-                "files_received": 0,
-                "file_ids": [],
-                "file_sizes": []
-            }
-            await message.reply(f"✅ Please forward the first file now.")
-        except ValueError:
-            await message.reply("❌ Invalid input. Please enter a valid number.")
-
-    elif state == "awaiting_files":
-        if not message.media:
-            await message.reply("❌ Please send a media file.")
+            forward_message = await client.ask(
+                text=f"<b>⏩ ғᴏʀᴡᴀʀᴅ ᴛʜᴇ ɴᴏ : {i+1} ғɪʟᴇ</b>",
+                chat_id=message.from_user.id, filters=(filters.video | filters.document), timeout=60
+            )
+        except Exception as e:
+            print(f"Error in getting forward message: {e}")
             return
         
-        # Forward file to storage channel
-        forwarded = await message.copy(DIRECT_GEN_DB)
-        file_id = forwarded.message_id
-        file_size = get_size(message.document.file_size if message.document else message.video.file_size)
+        post_message1 = await forward_message.copy(chat_id=CHANNEL_ID, disable_notification=True)
+        post_message = await forward_message.copy(chat_id=BIN_CHANNEL, disable_notification=True)
+        media = forward_message.document or forward_message.video
+        media_list.append((media, post_message1.id, forward_message, post_message.id))
+        await forward_message.delete()
+        await forward_message.sent_message.delete()
 
-        # Store file data
-        user_states[chat_id]["file_ids"].append(file_id)
-        user_states[chat_id]["file_sizes"].append(file_size)
-        user_states[chat_id]["files_received"] += 1
+    filename_message = await client.ask(
+        text="<b>ɴᴏᴡ sᴇɴᴅ ᴛʜᴇ ɴᴀᴍᴇ ᴏғ ᴛʜᴇ ᴍᴏᴠɪᴇ\n\nᴇx : ᴀɴʙᴇ sɪᴠᴀᴍ (2003) ᴛᴀᴍɪʟ ʜᴅʀɪᴘ</b>",
+        chat_id=message.from_user.id, filters=filters.text, timeout=60
+    )
+    filename = filename_message.text.strip() if filename_message else "Unknown Filename"
+    await filename_message.sent_message.delete()
+    await filename_message.delete()
+    
+    direct_telegram_links = []
+    stream_links = []
+    online_links = []
 
-        # Check if more files are needed
-        if user_states[chat_id]["files_received"] < user_states[chat_id]["num_files"]:
-            await message.reply(f"✅ File received! Now send file {user_states[chat_id]['files_received'] + 1}.")
+    for i, (media, msg_id, forward_message, post_message_id) in enumerate(media_list):
+        string = f"get-{msg_id * abs(CHANNEL_ID)}"
+        base64_string = await encode(string)
+        file_size = humanbytes(media.file_size) if media.file_size else ""
+        linkk = await get_shortlink(f"{RXL}/{base64_string}")
+        link = f"<b>{file_size} :</b> {linkk}\n"
+        direct_telegram_links.append(link)
+        direct_telegram_lines = '\n'.join(direct_telegram_links)
+
+    # Construct unique stream links for each file
+        online_linkk = await get_shortlink(f"{URL}{str(post_message_id)}/{quote_plus(get_name(forward_message))}?hash={get_hash(forward_message)}")  # Using post_message_id
+        stream_linkk = await get_shortlink(f"{URL}watch/{str(post_message_id)}/{quote_plus(get_name(forward_message))}?hash={get_hash(forward_message)}")  # Using post_message_id
+        stream_link = f"<b>{file_size} :</b> {stream_linkk}\n"
+        online_link = f"<b>{file_size} :</b> {online_linkk}\n"
+        stream_links.append(stream_link)
+        online_links.append(online_link)
+        stream_lines = '\n'.join(stream_links)
+        online_lines = '\n'.join(online_links)
+
+# Join all links outside the loop after constructing all links
+
+
+    
+
+    imdb_info = await get_poster(extract_movie_name(filename))
+    
+    # Check if IMDb info is found
+    if imdb_info:
+        # Download the IMDb poster image
+        imdb_image_response = requests.get(imdb_info['poster'])
+        imdb_image_data = io.BytesIO(imdb_image_response.content)
+    else:
+        # Use a default image if IMDb info is not found
+        # Replace 'common_image_url' with the URL of the common image you want to use
+        common_image_url = 'https://telegra.ph/file/74707bb075903640ed3f6.jpg'
+        imdb_image_data = io.BytesIO(requests.get(common_image_url).content)
+    # Send the IMDb poster image as a photo along with other details
+    await client.send_photo(
+        chat_id=message.chat.id,
+        photo=imdb_image_data,
+        caption=f'<b>🎬 {filename}\n\n'
+                f'✅ Note : [ <a href=https://t.me/tnlinkdown/9>How to download</a> ]\n\n'
+                f'🔻 Direct Telegram Files 🔻\n\n{direct_telegram_lines}\n'
+                f'🔻 Stream / Fast Download 🔻\n\n{stream_lines}\n'
+                f'@RX_LinkZz || @RolexMoviesOXO\n\n'
+                f'Share and Support Us 🫶🏻</b>'
+    )
+
+
+
+
+#---------------------------------IMDB--------------------------------------#
+
+async def get_poster(query, bulk=False, id=False, file=None):
+    if not id:
+        query = query.strip().lower()
+        title = query
+        year = re.findall(r'[1-2]\d{3}$', query, re.IGNORECASE)
+        if year:
+            year = list_to_str(year[:1])
+            title = (query.replace(year, "")).strip()
+        elif file is not None:
+            year = re.findall(r'[1-2]\d{3}', file, re.IGNORECASE)
+            if year:
+                year = list_to_str(year[:1])
         else:
-            await message.reply("✅ All files received. Now send the movie title.")
-            user_states[chat_id]["state"] = "awaiting_title"
-
-    elif state == "awaiting_title":
-        title = message.text.strip()
-        imdb_data = await get_poster(title)
-        poster = imdb_data.get("poster") if imdb_data else None
-
-        file_links = []
-        for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
-            long_url = f"https://t.me/{temp.U_NAME}?start=file_{file_id}"
-            short_url = await short_link(long_url)
-            file_links.append(f"》{user_states[chat_id]['file_sizes'][i]} : {short_url}")
-
-        post_text = f"🎬 **{title} HDRip**\n\n" \
-                    f"📀 [ 360p | 480p | 720p | 1080p ]\n\n" \
-                    f"🔻 **Download Links:**\n" + "\n".join(file_links)
-
-        if poster:
-            await client.send_photo(chat_id, poster, caption=post_text)
+            year = None
+        movieid = imdb.search_movie(title.lower(), results=10)
+        if not movieid:
+            return None
+        if year:
+            filtered = list(filter(lambda k: str(k.get('year')) == str(year), movieid))
+            if not filtered:
+                filtered = movieid
         else:
-            await client.send_message(chat_id, post_text)
+            filtered = movieid
+        movieid = list(filter(lambda k: k.get('kind') in ['movie', 'tv series'], filtered))
+        if not movieid:
+            movieid = filtered
+        if bulk:
+            return movieid
+        movieid = movieid[0].movieID
+    else:
+        movieid = query
+    movie = imdb.get_movie(movieid)
+    if movie.get("original air date"):
+        date = movie["original air date"]
+    elif movie.get("year"):
+        date = movie.get("year")
+    else:
+        date = "N/A"
+    plot = ""
+    if not True:  # Replace True with the condition you want
+        plot = movie.get('plot')
+        if plot and len(plot) > 0:
+            plot = plot[0]
+    else:
+        plot = movie.get('plot outline')
+    if plot and len(plot) > 800:
+        plot = plot[0:800] + "..."
 
-        del user_states[chat_id]  # Clear user state
+    return {
+        'title': movie.get('title'),
+        'votes': movie.get('votes'),
+        "aka": list_to_str(movie.get("akas")),
+        "seasons": movie.get("number of seasons"),
+        "box_office": movie.get('box office'),
+        'localized_title': movie.get('localized title'),
+        'kind': movie.get("kind"),
+        "imdb_id": f"tt{movie.get('imdbID')}",
+        "cast": list_to_str(movie.get("cast")),
+        "runtime": list_to_str(movie.get("runtimes")),
+        "countries": list_to_str(movie.get("countries")),
+        "certificates": list_to_str(movie.get("certificates")),
+        "languages": list_to_str(movie.get("languages")),
+        "director": list_to_str(movie.get("director")),
+        "writer": list_to_str(movie.get("writer")),
+        "producer": list_to_str(movie.get("producer")),
+        "composer": list_to_str(movie.get("composer")),
+        "cinematographer": list_to_str(movie.get("cinematographer")),
+        "music_team": list_to_str(movie.get("music department")),
+        "distributors": list_to_str(movie.get("distributors")),
+        'release_date': date,
+        'year': movie.get('year'),
+        'genres': list_to_str(movie.get("genres")),
+        'poster': movie.get('full-size cover url'),
+        'plot': plot,
+        'rating': str(movie.get("rating")),
+        'url': f'https://www.imdb.com/title/tt{movieid}'
+    }
+
+
+@Bot.on_message(filters.command('imdb') & filters.private)
+async def imdb_command(client: Client, message: Message):
+    if len(message.command) < 2:
+        await message.reply("Please provide a movie name with the /imdb command.")
+        return
+
+    movie_name = ' '.join(message.command[1:])
+    
+    try:
+        poster_info = await get_poster(movie_name)
+        
+        if poster_info:
+            # Download the poster image
+            image_response = requests.get(poster_info['poster'])
+            image_data = io.BytesIO(image_response.content)
+
+            # Send the poster image as a photo along with other details
+            await client.send_photo(
+                chat_id=message.chat.id,
+                photo=image_data,
+                caption=f'Movie Poster for {poster_info["title"]}\n'
+                        f'Rating: {poster_info["rating"]}\n'
+                        f'Genres: {poster_info["genres"]}\n'
+                        f'Plot: {poster_info["plot"]}\n'
+                        f'IMDb URL: {poster_info["url"]}'
+            )
+
+        else:
+            await message.reply_text('Movie not found. Please check the movie name and try again.')
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        await message.reply_text('An error occurred while fetching movie information.')
+
+def get_size(size):
+    """Get size in readable format"""
+
+    units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
+    size = float(size)
+    i = 0
+    while size >= 1024.0 and i < len(units):
+        i += 1
+        size /= 1024.0
+    return "%.2f %s" % (size, units[i])
+
+def split_list(l, n):
+    for i in range(0, len(l), n):
+        yield l[i:i + n]  
+
+
+def list_to_str(input_list):
+    if not input_list:
+        return "N/A"
+    return ', '.join(str(element) for element in input_list)
+
+def extract_movie_name(filename):
+    # Updated pattern to capture movie name along with year and exclude anything after it
+    pattern = r'(.+?\(\d{4}\)).*'
+    match = re.match(pattern, filename)
+    return match.group(1) if match else filename#--------------------------------SHORTENER------------------------------------------------#
+
+async def get_shortlink(link):
+    url = 'https://modijiurl.com/api'
+    params = {'api': SHORTENER_API, 'url': link}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, params=params, raise_for_status=True, ssl=False) as response:
+            data = await response.json()
+            return data["shortenedUrl"]
+
+
+#--------------------------------SHORTENER------------------------------------------------#
+
+
+#----------------------------------POST------------------------------------------------------#
+
+
+
+
+
+@Bot.on_message(filters.private & filters.user(ADMINS) & filters.command('post'))
+async def post(client: Client, message: Message):
+    try:
+        num_files = await client.ask(
+            text="<b>ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴜsᴇ ᴏᴜʀ ʀᴀʀᴇ ᴍᴏᴠɪᴇ ᴘᴏsᴛ ғᴇᴀᴛᴜʀᴇ :) ᴄᴏᴅᴇᴅ ʙʏ <a href=https://t.me/NovaXTG>ɴᴏᴠᴀxᴛɢ</a> 👨🏼‍💻\n\n👉🏻 sᴇɴᴅ ᴛʜᴇ ɴᴜᴍʙᴇʀ ᴏғ ғɪʟᴇs ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴀᴅᴅ 👈🏻\n\n‼️ ɴᴏᴛᴇ : ᴏɴʟʏ ɴᴜᴍʙᴇʀ</b>",
+            chat_id=message.from_user.id, filters=filters.text, timeout=60,
+            disable_web_page_preview=True
+        )
+        num_files = int(num_files.text)
+    except Exception as e:
+        print(f"Error in getting number of files: {e}")
+        return
+    media_list = []
+    for i in range(num_files):
+        try:
+            forward_message = await client.ask(
+                text=f"<b>⏩ ғᴏʀᴡᴀʀᴅ ᴛʜᴇ ɴᴏ : {i+1} ғɪʟᴇ</b>",
+                chat_id=message.from_user.id, filters=(filters.video | filters.document), timeout=60
+            )
+        except Exception as e:
+            print(f"Error in getting forward message: {e}")
+            return
+        
+        post_message1 = await forward_message.copy(chat_id=CHANNEL_ID, disable_notification=True)
+        post_message = await forward_message.copy(chat_id=BIN_CHANNEL, disable_notification=True)
+        media = forward_message.document or forward_message.video
+        media_list.append((media, post_message1.id, forward_message, post_message.id))
+        await forward_message.delete()
+        await forward_message.sent_message.delete()
+
+    filename_message = await client.ask(
+        text="<b>ɴᴏᴡ sᴇɴᴅ ᴛʜᴇ ɴᴀᴍᴇ ᴏғ ᴛʜᴇ ᴍᴏᴠɪᴇ\n\nᴇx : ᴀɴʙᴇ sɪᴠᴀᴍ (2003) ᴛᴀᴍɪʟ ʜᴅʀɪᴘ</b>",
+        chat_id=message.from_user.id, filters=filters.text, timeout=60
+    )
+    filename = filename_message.text.strip() if filename_message else "Unknown Filename"
+    await filename_message.sent_message.delete()
+    await filename_message.delete()
+    
+    direct_telegram_links = []
+    stream_links = []
+    online_links = []
+
+    for i, (media, msg_id, forward_message, post_message_id) in enumerate(media_list):
+        string = f"get-{msg_id * abs(CHANNEL_ID)}"
+        base64_string = await encode(string)
+        file_size = humanbytes(media.file_size) if media.file_size else ""
+        linkk = await get_shortlink(f"{RXL}/{base64_string}")
+        link = f"<b>{file_size} :</b> {linkk}\n"
+        direct_telegram_links.append(link)
+        direct_telegram_lines = '\n'.join(direct_telegram_links)
+
+    # Construct unique stream links for each file
+        online_linkk = await get_shortlink(f"{URL}{str(post_message_id)}/{quote_plus(get_name(forward_message))}?hash={get_hash(forward_message)}")  # Using post_message_id
+        stream_linkk = await get_shortlink(f"{URL}watch/{str(post_message_id)}/{quote_plus(get_name(forward_message))}?hash={get_hash(forward_message)}")  # Using post_message_id
+        stream_link = f"<b>{file_size} :</b> {stream_linkk}\n"
+        online_link = f"<b>{file_size} :</b> {online_linkk}\n"
+        stream_links.append(stream_link)
+        online_links.append(online_link)
+        stream_lines = '\n'.join(stream_links)
+        online_lines = '\n'.join(online_links)
+
+# Join all links outside the loop after constructing all links
+
+
+    
+
+    imdb_info = await get_poster(extract_movie_name(filename))
+    
+    # Check if IMDb info is found
+    if imdb_info:
+        # Download the IMDb poster image
+        imdb_image_response = requests.get(imdb_info['poster'])
+        imdb_image_data = io.BytesIO(imdb_image_response.content)
+    else:
+        # Use a default image if IMDb info is not found
+        # Replace 'common_image_url' with the URL of the common image you want to use
+        common_image_url = 'https://telegra.ph/file/74707bb075903640ed3f6.jpg'
+        imdb_image_data = io.BytesIO(requests.get(common_image_url).content)
+    # Send the IMDb poster image as a photo along with other details
+    await client.send_photo(
+        chat_id=message.chat.id,
+        photo=imdb_image_data,
+        caption=f'<b>🎬 {filename}\n\n'
+                f'✅ Note : [ <a href=https://t.me/tnlinkdown/9>How to download</a> ]\n\n'
+                f'🔻 Direct Telegram Files 🔻\n\n{direct_telegram_lines}\n'
+                f'🔻 Stream / Fast Download 🔻\n\n{stream_lines}\n'
+                f'@RX_LinkZz || @RolexMoviesOXO\n\n'
+                f'Share and Support Us 🫶🏻</b>'
+    )
+
+
+
+
+#---------------------------------IMDB--------------------------------------#
+
+async def get_poster(query, bulk=False, id=False, file=None):
+    if not id:
+        query = query.strip().lower()
+        title = query
+        year = re.findall(r'[1-2]\d{3}$', query, re.IGNORECASE)
+        if year:
+            year = list_to_str(year[:1])
+            title = (query.replace(year, "")).strip()
+        elif file is not None:
+            year = re.findall(r'[1-2]\d{3}', file, re.IGNORECASE)
+            if year:
+                year = list_to_str(year[:1])
+        else:
+            year = None
+        movieid = imdb.search_movie(title.lower(), results=10)
+        if not movieid:
+            return None
+        if year:
+            filtered = list(filter(lambda k: str(k.get('year')) == str(year), movieid))
+            if not filtered:
+                filtered = movieid
+        else:
+            filtered = movieid
+        movieid = list(filter(lambda k: k.get('kind') in ['movie', 'tv series'], filtered))
+        if not movieid:
+            movieid = filtered
+        if bulk:
+            return movieid
+        movieid = movieid[0].movieID
+    else:
+        movieid = query
+    movie = imdb.get_movie(movieid)
+    if movie.get("original air date"):
+        date = movie["original air date"]
+    elif movie.get("year"):
+        date = movie.get("year")
+    else:
+        date = "N/A"
+    plot = ""
+    if not True:  # Replace True with the condition you want
+        plot = movie.get('plot')
+        if plot and len(plot) > 0:
+            plot = plot[0]
+    else:
+        plot = movie.get('plot outline')
+    if plot and len(plot) > 800:
+        plot = plot[0:800] + "..."
+
+    return {
+        'title': movie.get('title'),
+        'votes': movie.get('votes'),
+        "aka": list_to_str(movie.get("akas")),
+        "seasons": movie.get("number of seasons"),
+        "box_office": movie.get('box office'),
+        'localized_title': movie.get('localized title'),
+        'kind': movie.get("kind"),
+        "imdb_id": f"tt{movie.get('imdbID')}",
+        "cast": list_to_str(movie.get("cast")),
+        "runtime": list_to_str(movie.get("runtimes")),
+        "countries": list_to_str(movie.get("countries")),
+        "certificates": list_to_str(movie.get("certificates")),
+        "languages": list_to_str(movie.get("languages")),
+        "director": list_to_str(movie.get("director")),
+        "writer": list_to_str(movie.get("writer")),
+        "producer": list_to_str(movie.get("producer")),
+        "composer": list_to_str(movie.get("composer")),
+        "cinematographer": list_to_str(movie.get("cinematographer")),
+        "music_team": list_to_str(movie.get("music department")),
+        "distributors": list_to_str(movie.get("distributors")),
+        'release_date': date,
+        'year': movie.get('year'),
+        'genres': list_to_str(movie.get("genres")),
+        'poster': movie.get('full-size cover url'),
+        'plot': plot,
+        'rating': str(movie.get("rating")),
+        'url': f'https://www.imdb.com/title/tt{movieid}'
+    }
+
+
+@Bot.on_message(filters.command('imdb') & filters.private)
+async def imdb_command(client: Client, message: Message):
+    if len(message.command) < 2:
+        await message.reply("Please provide a movie name with the /imdb command.")
+        return
+
+    movie_name = ' '.join(message.command[1:])
+    
+    try:
+        poster_info = await get_poster(movie_name)
+        
+        if poster_info:
+            # Download the poster image
+            image_response = requests.get(poster_info['poster'])
+            image_data = io.BytesIO(image_response.content)
+
+            # Send the poster image as a photo along with other details
+            await client.send_photo(
+                chat_id=message.chat.id,
+                photo=image_data,
+                caption=f'Movie Poster for {poster_info["title"]}\n'
+                        f'Rating: {poster_info["rating"]}\n'
+                        f'Genres: {poster_info["genres"]}\n'
+                        f'Plot: {poster_info["plot"]}\n'
+                        f'IMDb URL: {poster_info["url"]}'
+            )
+
+        else:
+            await message.reply_text('Movie not found. Please check the movie name and try again.')
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        await message.reply_text('An error occurred while fetching movie information.')
+
+def get_size(size):
+    """Get size in readable format"""
+
+    units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
+    size = float(size)
+    i = 0
+    while size >= 1024.0 and i < len(units):
+        i += 1
+        size /= 1024.0
+    return "%.2f %s" % (size, units[i])
+
+def split_list(l, n):
+    for i in range(0, len(l), n):
+        yield l[i:i + n]  
+
+
+def list_to_str(input_list):
+    if not input_list:
+        return "N/A"
+    return ', '.join(str(element) for element in input_list)
+
+def extract_movie_name(filename):
+    # Updated pattern to capture movie name along with year and exclude anything after it
+    pattern = r'(.+?\(\d{4}\)).*'
+    match = re.match(pattern, filename)
+    return match.group(1) if match else filename
