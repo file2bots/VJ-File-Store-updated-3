@@ -6,6 +6,12 @@ import os
 import logging
 import random
 import asyncio
+import logging  # Ensure logging is imported
+import re
+import json
+import base64
+from urllib.parse import quote_plus
+
 from validators import domain
 from Script import script
 from plugins.dbusers import db
@@ -13,13 +19,20 @@ from pyrogram import Client, filters, enums
 from plugins.users_api import get_user, update_user_info
 from pyrogram.errors import ChatAdminRequired, FloodWait
 from pyrogram.types import *
-from utils import verify_user, check_token, check_verification, get_token, get_size, gen_link, clean_title, get_poster, temp, short_link
+
+# Lazy import to prevent circular dependency
 from config import *
-import re
-import json
-import base64
-from urllib.parse import quote_plus
+
+# Import utils functions separately to avoid circular import
+from utils import (
+    verify_user, check_token, check_verification, get_token, get_size,
+    gen_link, clean_title, get_poster, temp, short_link
+)
+
+# Import TechVJ utilities safely
 from TechVJ.utils.file_properties import get_name, get_hash, get_media_file_size
+
+# Initialize logger
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
