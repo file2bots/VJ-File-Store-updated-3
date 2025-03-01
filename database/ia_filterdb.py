@@ -1,7 +1,7 @@
 import motor.motor_asyncio
 import re
 import base64
-from config import DB_NAME, DB_URI
+from config import DB_NAME, DB_URI, CHANNELS
 from pyrogram.file_id import FileId, encode_file_id
 from struct import pack
 
