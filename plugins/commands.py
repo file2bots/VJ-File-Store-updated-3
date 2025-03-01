@@ -418,7 +418,7 @@ from pyrogram.errors import ChatAdminRequired, FloodWait
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from utils import get_size, gen_link, clean_title, get_poster, temp, short_link
-from info import HOW_TO_POST_SHORT, ADMINS, DIRECT_GEN_DB
+from config.py import HOW_TO_POST_SHORT, ADMINS, DIRECT_GEN_DB
 
 user_states = {}
 
