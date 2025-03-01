@@ -3,6 +3,7 @@ from datetime import date, datetime
 from config import *
 from shortzy import Shortzy
 from urllib.parse import quote_plus
+from pyrogram.types import Message
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -178,6 +179,23 @@ async def search_gagala(text):
     soup = BeautifulSoup(response.text, 'html.parser')
     titles = soup.find_all( 'h3' )
     return [title.getText() for title in titles]
+
+def get_file_id(msg: Message):
+    if msg.media:
+        for message_type in (
+            "photo",
+            "animation",
+            "audio",
+            "document",
+            "video",
+            "video_note",
+            "voice",
+            "sticker"
+        ):
+            obj = getattr(msg, message_type)
+            if obj:
+                setattr(obj, "message_type", message_type)
+                return obj
 
 
 #------------------------------------------------------
