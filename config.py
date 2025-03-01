@@ -80,6 +80,9 @@ URL = environ.get("URL", "https://storefilesget.koyeb.app/")
 
 #---------------------------------------------------------------------------------------------
 
+# This Is File Channel Where You Upload Your File Then Bot Automatically Save It In Database 
+CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHANNELS', '-1002063814391').split()]
+
 #Newfeatures vars developer - Anshvachhani99 ✨🌸
 
 DIRECT_GEN_DB = int(os.environ.get("DIRECT_GEN_DB", "-1001740524004"))
