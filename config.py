@@ -77,10 +77,22 @@ if 'DYNO' in environ:
 else:
     ON_HEROKU = False
 URL = environ.get("URL", "https://storefilesget.koyeb.app/")
-#RXL = environ.get("RXL", "https://t.me/AdvFilesShareBot")
+
+#---------------------------------------------------------------------------------------------
+
+#Newfeatures vars developer - Anshvachhani99 ✨🌸
+
+DIRECT_GEN_DB = int(os.environ.get("DIRECT_GEN_DB", "-1001740524004"))
+DIRECT_GEN_URL = os.environ.get("DIRECT_GEN_URL", "https://storefilesget.koyeb.app/")
+DIRECT_GEN = bool(DIRECT_GEN_DB and DIRECT_GEN_URL)
+
+POST_MODE= bool(environ.get('POST_MODE', True))
+POST_SHORT_API = environ.get('POST_SHORT_API', '')
+POST_SHORT_URL = environ.get('POST_SHORT_URL', '')
+
+HOW_TO_POST_SHORT = environ.get('HOW_TO_POST_SHORT', 'https://t.me/Howtodowloa/13')
 
 
-#CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1001740524004"))
 
 
 
