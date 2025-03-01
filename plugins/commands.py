@@ -1,53 +1,33 @@
-import re
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
+
 import os
-import io
 import logging
 import random
 import asyncio
 from validators import domain
-from shortzy import Shortzy
 from Script import script
 from plugins.dbusers import db
 from pyrogram import Client, filters, enums
 from plugins.users_api import get_user, update_user_info
 from pyrogram.errors import ChatAdminRequired, FloodWait
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.types import *
-from utils import get_message_id
 from utils import verify_user, check_token, check_verification, get_token
 from config import *
+import re
 import json
 import base64
-import requests
-from telethon.tl import types
-from utils import humanbytes
 from urllib.parse import quote_plus
-from plugins.dbusers import Database
-from asyncio import TimeoutError
-from CloudXbotz.utils.file_properties import get_name, get_hash, get_media_file_size
+from TechVJ.utils.file_properties import get_name, get_hash, get_media_file_size
 logger = logging.getLogger(__name__)
 
-db = Database(DB_URI, DB_NAME)
-CMD = ["/", "."]
-from imdb import IMDb
-from io import BytesIO
-from PIL import Image
-imdb = IMDb()
-from imdb._exceptions import IMDbDataAccessError
-#--------------------------------
-
 BATCH_FILES = {}
-async def is_subscribed(bot, query, channel):
-    btn = []
-    for id in channel:
-        chat = await bot.get_chat(int(id))
-        try:
-            await bot.get_chat_member(id, query.from_user.id)
-        except UserNotParticipant:
-            btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
-        except Exception as e:
-            pass
-    return btn
+
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
+
 
 def get_size(size):
     """Get size in readable format"""
@@ -64,50 +44,44 @@ def formate_file_name(file_name):
     chars = ["[", "]", "(", ")"]
     for c in chars:
         file_name.replace(c, "")
-    file_name = '@TamilMob_Zone - ' + ' '.join(filter(lambda x: not x.startswith('http') and not x.startswith('@') and not x.startswith('www.'), file_name.split()))
+    file_name = '@VJ_Botz ' + ' '.join(filter(lambda x: not x.startswith('http') and not x.startswith('@') and not x.startswith('www.'), file_name.split()))
     return file_name
+
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ0
+
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
-    if AUTH_CHANNEL:
-        try:
-            btn = await is_subscribed(client, message, AUTH_CHANNEL)
-            if btn:
-                username = (await client.get_me()).username
-                if message.command[1]:
-                    btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start={message.command[1]}")])
-                else:
-                    btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
-                await message.reply_text(text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the channel then click on try again button. 😇</b>", reply_markup=InlineKeyboardMarkup(btn))
-                return
-        except Exception as e:
-            print(e)
+    username = client.me.username
     if not await db.is_user_exist(message.from_user.id):
         await db.add_user(message.from_user.id, message.from_user.first_name)
         await client.send_message(LOG_CHANNEL, script.LOG_TEXT.format(message.from_user.id, message.from_user.mention))
     if len(message.command) != 2:
-        buttons = [
-            [
-            InlineKeyboardButton('🔍 sᴜᴘᴘᴏʀᴛ', url='https://t.me/CloudxAdmin_Bot'),
-            InlineKeyboardButton('🤖 ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ', url='https://t.me/+mDKrpo2FcD04Nzll')
-            ],
-            [
+        buttons = [[
+            InlineKeyboardButton('💝 sᴜʙsᴄʀɪʙᴇ ᴍʏ ʏᴏᴜᴛᴜʙᴇ ᴄʜᴀɴɴᴇʟ', url='https://youtube.com/@Tech_VJ')
+            ],[
+            InlineKeyboardButton('🔍 sᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ', url='https://t.me/vj_bot_disscussion'),
+            InlineKeyboardButton('🤖 ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ', url='https://t.me/vj_botz')
+            ],[
             InlineKeyboardButton('💁‍♀️ ʜᴇʟᴘ', callback_data='help'),
             InlineKeyboardButton('😊 ᴀʙᴏᴜᴛ', callback_data='about')
-            ],
-            [
-            InlineKeyboardButton('✇ Jᴏɪɴ Mᴏᴠɪᴇs Cʜᴀɴɴᴇʟ ✇', callback_data='extra')
         ]]
         if CLONE_MODE == True:
             buttons.append([InlineKeyboardButton('🤖 ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄʟᴏɴᴇ ʙᴏᴛ', callback_data='clone')])
         reply_markup = InlineKeyboardMarkup(buttons)
-        me = await client.get_me()
+        me = client.me
         await message.reply_photo(
             photo=random.choice(PICS),
             caption=script.START_TXT.format(message.from_user.mention, me.mention),
             reply_markup=reply_markup
         )
         return
+
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
     
     data = message.command[1]
     try:
@@ -234,6 +208,10 @@ async def start(client, message):
             await k.edit_text("<b>Your All Files/Videos is successfully deleted!!!</b>")
         return
 
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
+
     pre, decode_file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
     if not await check_verification(client, message.from_user.id) and VERIFY_MODE == True:
         btn = [[
@@ -288,7 +266,10 @@ async def start(client, message):
         return
     except:
         pass
-    
+        
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
 
 @Client.on_message(filters.command('api') & filters.private)
 async def shortener_api_handler(client, m: Message):
@@ -304,6 +285,10 @@ async def shortener_api_handler(client, m: Message):
         api = cmd[1].strip()
         await update_user_info(user_id, {"shortener_api": api})
         await m.reply("<b>Shortener API updated successfully to</b> " + api)
+
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
 
 @Client.on_message(filters.command("base_site") & filters.private)
 async def base_site_handler(client, m: Message):
@@ -323,6 +308,10 @@ async def base_site_handler(client, m: Message):
             return await m.reply(text=text, disable_web_page_preview=True)
         await update_user_info(user_id, {"base_site": base_site})
         await m.reply("<b>Base Site updated successfully</b>")
+
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
@@ -346,18 +335,19 @@ async def cb_handler(client: Client, query: CallbackQuery):
             parse_mode=enums.ParseMode.HTML
         )
 
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
+    
     elif query.data == "start":
-        buttons = [
-            [
-            InlineKeyboardButton('🔍 sᴜᴘᴘᴏʀᴛ ', url='https://t.me/CloudxAdmin_Bot'),
-            InlineKeyboardButton('🤖 ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ', url='https://t.me/+mDKrpo2FcD04Nzll')
-            ],
-            [
+        buttons = [[
+            InlineKeyboardButton('💝 sᴜʙsᴄʀɪʙᴇ ᴍʏ ʏᴏᴜᴛᴜʙᴇ ᴄʜᴀɴɴᴇʟ', url='https://youtube.com/@Tech_VJ')
+        ],[
+            InlineKeyboardButton('🔍 sᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ', url='https://t.me/vj_bot_disscussion'),
+            InlineKeyboardButton('🤖 ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ', url='https://t.me/vj_botz')
+        ],[
             InlineKeyboardButton('💁‍♀️ ʜᴇʟᴘ', callback_data='help'),
             InlineKeyboardButton('😊 ᴀʙᴏᴜᴛ', callback_data='about')
-            ],
-            [
-            InlineKeyboardButton('✇ Jᴏɪɴ Mᴏᴠɪᴇs Cʜᴀɴɴᴇʟ ✇', callback_data='extra')
         ]]
         if CLONE_MODE == True:
             buttons.append([InlineKeyboardButton('🤖 ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄʟᴏɴᴇ ʙᴏᴛ', callback_data='clone')])
@@ -372,18 +362,16 @@ async def cb_handler(client: Client, query: CallbackQuery):
             text=script.START_TXT.format(query.from_user.mention, me2),
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
-        )          
+        )
+
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
     
-    elif query.data == "extra":
+    elif query.data == "clone":
         buttons = [[
-            InlineKeyboardButton('🍿 Uᴘᴅᴀᴛᴇᴅ Cʜᴀɴɴᴇʟs 📌', url='https://t.me/+88LpGR0t8_1lNzU1')
-        ],[
-            InlineKeyboardButton('🔎 ᴍᴏᴠɪᴇ sᴇᴀʀᴄʜ ʙᴏᴛ 🔍', url='https://t.me/SimplySearchBot')
-        ],[
-            InlineKeyboardButton('🔞 Rᴇsᴛʀɪᴄᴛᴇᴅ Aʀᴇᴀ 🔞', url='https://t.me/+UiiWHjVno04yMjU1')
-        ],[
-            InlineKeyboardButton('🏠 𝙷𝙾𝙼𝙴 🏠', callback_data='start'),
-            InlineKeyboardButton('Cʟᴏsᴇ🔒', callback_data='close_data')
+            InlineKeyboardButton('Hᴏᴍᴇ', callback_data='start'),
+            InlineKeyboardButton('🔒 Cʟᴏsᴇ', callback_data='close_data')
         ]]
         await client.edit_message_media(
             query.message.chat.id, 
@@ -392,10 +380,14 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )
         reply_markup = InlineKeyboardMarkup(buttons)
         await query.message.edit_text(
-            text=script.JOINUPDATES_TXT,
+            text=script.CLONE_TXT.format(query.from_user.mention),
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
-        )
+        )          
+
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
     
     elif query.data == "help":
         buttons = [[
@@ -413,260 +405,140 @@ async def cb_handler(client: Client, query: CallbackQuery):
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
         )  
+        
+#-------------------------------------###__________________________________________#
 
+#poster make features developer - Ansh Vachhani
 
-#--------------------------------SHORTENER------------------------------------------------#
+import re
+import logging
+from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong
+from database.ia_filterdb import unpack_new_file_id
+from pyrogram.errors import ChatAdminRequired, FloodWait
+from pyrogram import Client, filters
+from pyrogram.types import Message
+from utils import get_size, gen_link, clean_title, get_poster, temp, short_link
+from info import HOW_TO_POST_SHORT, ADMINS, DIRECT_GEN_DB
 
-async def get_shortlink(link):
-    url = 'https://modijiurl.com/api'
-    params = {'api': SHORTENER_API, 'url': link}
+user_states = {}
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, params=params, raise_for_status=True, ssl=False) as response:
-            data = await response.json()
-            return data["shortenedUrl"]
-
-
-#--------------------------------SHORTENER------------------------------------------------#
-
-
-#----------------------------------POST------------------------------------------------------#
-
-
-
-
-
-@Client.on_message(filters.private & filters.user(ADMINS) & filters.command('post'))
-async def post(client: Client, message: Message):
-    try:
-        num_files = await client.ask(
-            text="<b>ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴜsᴇ ᴏᴜʀ ʀᴀʀᴇ ᴍᴏᴠɪᴇ ᴘᴏsᴛ ғᴇᴀᴛᴜʀᴇ :) ᴄᴏᴅᴇᴅ ʙʏ <a href=https://t.me/NovaXTG>ɴᴏᴠᴀxᴛɢ</a> 👨🏼‍💻\n\n👉🏻 sᴇɴᴅ ᴛʜᴇ ɴᴜᴍʙᴇʀ ᴏғ ғɪʟᴇs ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴀᴅᴅ 👈🏻\n\n‼️ ɴᴏᴛᴇ : ᴏɴʟʏ ɴᴜᴍʙᴇʀ</b>",
-            chat_id=message.from_user.id, filters=filters.text, timeout=60,
-            disable_web_page_preview=True
-        )
-        num_files = int(num_files.text)
-    except Exception as e:
-        print(f"Error in getting number of files: {e}")
-        return
-    media_list = []
-    for i in range(num_files):
+async def delete_previous_reply(chat_id):
+    if chat_id in user_states and "last_reply" in user_states[chat_id]:
         try:
-            forward_message = await client.ask(
-                text=f"<b>⏩ ғᴏʀᴡᴀʀᴅ ᴛʜᴇ ɴᴏ : {i+1} ғɪʟᴇ</b>",
-                chat_id=message.from_user.id, filters=(filters.video | filters.document), timeout=60
-            )
+            await user_states[chat_id]["last_reply"].delete()
         except Exception as e:
-            print(f"Error in getting forward message: {e}")
-            return
-        
-        post_message1 = await forward_message.copy(chat_id=LOG_CHANNEL, disable_notification=True)
-        post_message = await forward_message.copy(chat_id=LOG_CHANNEL, disable_notification=True)
-        media = forward_message.document or forward_message.video
-        media_list.append((media, post_message1.id, forward_message, post_message.id))
-        await forward_message.delete()
-        await forward_message.sent_message.delete()
-
-    filename_message = await client.ask(
-        text="<b>ɴᴏᴡ sᴇɴᴅ ᴛʜᴇ ɴᴀᴍᴇ ᴏғ ᴛʜᴇ ᴍᴏᴠɪᴇ\n\nᴇx : ᴀɴʙᴇ sɪᴠᴀᴍ (2003) ᴛᴀᴍɪʟ ʜᴅʀɪᴘ</b>",
-        chat_id=message.from_user.id, filters=filters.text, timeout=60
-    )
-    filename = filename_message.text.strip() if filename_message else "Unknown Filename"
-    await filename_message.sent_message.delete()
-    await filename_message.delete()
-    
-    direct_telegram_links = []
-    stream_links = []
-    online_links = []
-
-    for i, (media, msg_id, forward_message, post_message_id) in enumerate(media_list):
-        string = f"get-{msg_id * abs(LOG_CHANNEL)}"
-        base64_string = await encode(string)
-        file_size = humanbytes(media.file_size) if media.file_size else ""
-        linkk = await get_shortlink(f"{RXL}/{base64_string}")
-        link = f"<b>{file_size} :</b> {linkk}\n"
-        direct_telegram_links.append(link)
-        direct_telegram_lines = '\n'.join(direct_telegram_links)
-
-    # Construct unique stream links for each file
-        online_linkk = await get_shortlink(f"{URL}{str(post_message_id)}/{quote_plus(get_name(forward_message))}?hash={get_hash(forward_message)}")  # Using post_message_id
-        stream_linkk = await get_shortlink(f"{URL}watch/{str(post_message_id)}/{quote_plus(get_name(forward_message))}?hash={get_hash(forward_message)}")  # Using post_message_id
-        stream_link = f"<b>{file_size} :</b> {stream_linkk}\n"
-        online_link = f"<b>{file_size} :</b> {online_linkk}\n"
-        stream_links.append(stream_link)
-        online_links.append(online_link)
-        stream_lines = '\n'.join(stream_links)
-        online_lines = '\n'.join(online_links)
-
-# Join all links outside the loop after constructing all links
+            print(f"Failed to delete message: {e}")
 
 
-    
-
-    imdb_info = await get_poster(extract_movie_name(filename))
-    
-    # Check if IMDb info is found
-    if imdb_info:
-        # Download the IMDb poster image
-        imdb_image_response = requests.get(imdb_info['poster'])
-        imdb_image_data = io.BytesIO(imdb_image_response.content)
-    else:
-        # Use a default image if IMDb info is not found
-        # Replace 'common_image_url' with the URL of the common image you want to use
-        common_image_url = 'https://telegra.ph/file/74707bb075903640ed3f6.jpg'
-        imdb_image_data = io.BytesIO(requests.get(common_image_url).content)
-    # Send the IMDb poster image as a photo along with other details
-    await client.send_photo(
-        chat_id=message.chat.id,
-        photo=imdb_image_data,
-        caption=f'<b>🎬 {filename}\n\n'
-                f'✅ Note : [ <a href=https://t.me/tnlinkdown/9>How to download</a> ]\n\n'
-                f'🔻 Direct Telegram Files 🔻\n\n{direct_telegram_lines}\n'
-                f'🔻 Stream / Fast Download 🔻\n\n{stream_lines}\n'
-                f'@RX_LinkZz || @RolexMoviesOXO\n\n'
-                f'Share and Support Us 🫶🏻</b>'
-    )
-
-
-
-
-#---------------------------------IMDB--------------------------------------#
-
-async def get_poster(query, bulk=False, id=False, file=None):
-    if not id:
-        query = query.strip().lower()
-        title = query
-        year = re.findall(r'[1-2]\d{3}$', query, re.IGNORECASE)
-        if year:
-            year = list_to_str(year[:1])
-            title = (query.replace(year, "")).strip()
-        elif file is not None:
-            year = re.findall(r'[1-2]\d{3}', file, re.IGNORECASE)
-            if year:
-                year = list_to_str(year[:1])
-        else:
-            year = None
-        movieid = imdb.search_movie(title.lower(), results=10)
-        if not movieid:
-            return None
-        if year:
-            filtered = list(filter(lambda k: str(k.get('year')) == str(year), movieid))
-            if not filtered:
-                filtered = movieid
-        else:
-            filtered = movieid
-        movieid = list(filter(lambda k: k.get('kind') in ['movie', 'tv series'], filtered))
-        if not movieid:
-            movieid = filtered
-        if bulk:
-            return movieid
-        movieid = movieid[0].movieID
-    else:
-        movieid = query
-    movie = imdb.get_movie(movieid)
-    if movie.get("original air date"):
-        date = movie["original air date"]
-    elif movie.get("year"):
-        date = movie.get("year")
-    else:
-        date = "N/A"
-    plot = ""
-    if not True:  # Replace True with the condition you want
-        plot = movie.get('plot')
-        if plot and len(plot) > 0:
-            plot = plot[0]
-    else:
-        plot = movie.get('plot outline')
-    if plot and len(plot) > 800:
-        plot = plot[0:800] + "..."
-
-    return {
-        'title': movie.get('title'),
-        'votes': movie.get('votes'),
-        "aka": list_to_str(movie.get("akas")),
-        "seasons": movie.get("number of seasons"),
-        "box_office": movie.get('box office'),
-        'localized_title': movie.get('localized title'),
-        'kind': movie.get("kind"),
-        "imdb_id": f"tt{movie.get('imdbID')}",
-        "cast": list_to_str(movie.get("cast")),
-        "runtime": list_to_str(movie.get("runtimes")),
-        "countries": list_to_str(movie.get("countries")),
-        "certificates": list_to_str(movie.get("certificates")),
-        "languages": list_to_str(movie.get("languages")),
-        "director": list_to_str(movie.get("director")),
-        "writer": list_to_str(movie.get("writer")),
-        "producer": list_to_str(movie.get("producer")),
-        "composer": list_to_str(movie.get("composer")),
-        "cinematographer": list_to_str(movie.get("cinematographer")),
-        "music_team": list_to_str(movie.get("music department")),
-        "distributors": list_to_str(movie.get("distributors")),
-        'release_date': date,
-        'year': movie.get('year'),
-        'genres': list_to_str(movie.get("genres")),
-        'poster': movie.get('full-size cover url'),
-        'plot': plot,
-        'rating': str(movie.get("rating")),
-        'url': f'https://www.imdb.com/title/tt{movieid}'
-    }
-
-
-@Client.on_message(filters.command('imdb') & filters.private)
-async def imdb_command(client: Client, message: Message):
-    if len(message.command) < 2:
-        await message.reply("Please provide a movie name with the /imdb command.")
-        return
-
-    movie_name = ' '.join(message.command[1:])
-    
+@Client.on_message(filters.command("post") & filters.user(ADMINS))
+async def post_command(client, message):
     try:
-        poster_info = await get_poster(movie_name)
-        
-        if poster_info:
-            # Download the poster image
-            image_response = requests.get(poster_info['poster'])
-            image_data = io.BytesIO(image_response.content)
+        await message.reply("**Wᴇʟᴄᴏᴍᴇ Tᴏ Usᴇ Oᴜʀ Rᴀʀᴇ Mᴏᴠɪᴇ Pᴏsᴛ Fᴇᴀᴛᴜʀᴇ:) Cᴏᴅᴇ ʙʏ [Rᴏxʏ ʟɪɴᴋᴢᴢ](https://t.me/PKlinkzz_admin_bot) 👨‍💻**\n\n**👉🏻Sᴇɴᴅ ᴛʜᴇ ɴᴜᴍʙᴇʀ ᴏғ ғɪʟᴇs ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴀᴅᴅ👈🏻**\n\n**‼️ Nᴏᴛᴇ : Oɴʟʏ ɴᴜᴍʙᴇʀ**", disable_web_page_preview=True)
+        user_states[message.chat.id] = {"state": "awaiting_num_files"}
+    except Exception as e:
+        await message.reply(f"Error occurred: {e}")
 
-            # Send the poster image as a photo along with other details
-            await client.send_photo(
-                chat_id=message.chat.id,
-                photo=image_data,
-                caption=f'Movie Poster for {poster_info["title"]}\n'
-                        f'Rating: {poster_info["rating"]}\n'
-                        f'Genres: {poster_info["genres"]}\n'
-                        f'Plot: {poster_info["plot"]}\n'
-                        f'IMDb URL: {poster_info["url"]}'
-            )
+
+
+@Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("post"))
+async def handle_message(client, message):
+    try:
+        chat_id = message.chat.id
+        
+        await delete_previous_reply(chat_id)
+        
+        if chat_id in user_states:
+            current_state = user_states[chat_id]["state"]
+
+            if current_state == "awaiting_num_files":
+                try:
+                    num_files = int(message.text.strip())
+
+                    if num_files <= 0:
+                        rply = await message.reply("⏩ ғᴏʀᴡᴀʀᴅ ᴛʜᴇ ғɪʟᴇ")
+                        user_states[chat_id]["last_reply"] = rply
+                        return
+
+                    user_states[chat_id] = {
+                        "state": "awaiting_files",
+                        "num_files": num_files,
+                        "files_received": 0,
+                        "file_ids": [],
+                        "file_sizes": [],
+                        "stream_links": []
+                    }
+
+                    reply_message = await message.reply("**⏩ ғᴏʀᴡᴀʀᴅ ᴛʜᴇ ɴᴏ: 1 ғɪʟᴇ**")
+                    user_states[chat_id]["last_reply"] = reply_message
+                        
+                except ValueError:
+                    await message.reply("Invalid input. Please enter a valid number.")
+
+            elif current_state == "awaiting_files":
+                if message.media:
+                    file_type = message.media
+                    forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
+                    file_id = unpack_new_file_id(getattr(message, file_type.value).file_id)
+                    log_msg = await message.copy(chat_id=DIRECT_GEN_DB)
+                    stream_link = await gen_link(log_msg)
+                    
+                    size = get_size(getattr(message, file_type.value).file_size)
+                    await message.delete()
+                else:
+                    forwarded_message = await message.forward(chat_id=DIRECT_GEN_DB)
+                    file_id = forwarded_message.message_id
+
+                user_states[chat_id]["file_ids"].append(file_id)
+                user_states[chat_id]["file_sizes"].append(size)
+                user_states[chat_id]["stream_links"].append(stream_link)
+
+                user_states[chat_id]["files_received"] += 1
+                files_received = user_states[chat_id]["files_received"]
+                num_files_left = user_states[chat_id]["num_files"] - files_received
+
+                if num_files_left > 0:
+                    files_text = "ғɪʟᴇ" if files_received == 1 else "ғɪʟᴇs"
+                    reply_message = await message.reply(f"**⏩ ғᴏʀᴡᴀʀᴅ ᴛʜᴇ ɴᴏ: {files_received + 1} {files_text}**")
+                    user_states[chat_id]["last_reply"] = reply_message                     
+                else:
+                    reply_message = await message.reply("**ɴᴏᴡ sᴇɴᴅ ᴛʜᴇ ɴᴀᴍᴇ ᴏғ ᴛʜᴇ ᴍᴏᴠɪᴇ**\n\n**ᴇx : ʟᴏᴠᴇʀ 𝟸𝟶𝟸𝟺 ʜɪɴᴅɪ ᴡᴇʙᴅʟ**")                    
+                    user_states[chat_id]["state"] = "awaiting_title"
+                    user_states[chat_id]["last_reply"] = reply_message
+                    
+            elif current_state == "awaiting_title":
+                title = message.text.strip()
+                title_clean = re.sub(r"[()\[\]{}:;'!]", "", title)
+                cleaned_title = clean_title(title_clean)
+
+                imdb_data = await get_poster(cleaned_title)
+                poster = imdb_data.get('poster') if imdb_data else None
+
+                file_info = []
+                for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
+                    long_url = f"https://t.me/{temp.U_NAME}?start=aNsH_{file_id[0]}"
+                    short_link_url = await short_link(long_url)
+                    file_info.append(f"》{user_states[chat_id]['file_sizes'][i]} : {short_link_url}")
+                
+                file_info_text = "\n\n".join(file_info)
+
+                stream_links_info = []
+                for i, stream_link in enumerate(user_states[chat_id]["stream_links"]):
+                    long_stream_url = stream_link[0]
+                    short_stream_link_url = await short_link(long_stream_url)
+                    stream_links_info.append(f"》{user_states[chat_id]['file_sizes'][i]} : {short_stream_link_url}")
+                
+                stream_links_text = "\n\n".join(stream_links_info)                
+                summary_message = f"**🎬{title} Tamil HDRip**\n\n**[ 𝟹𝟼𝟶ᴘ☆𝟺𝟾𝟶ᴘ☆Hᴇᴠᴄ☆𝟽𝟸𝟶ᴘ☆𝟷𝟶𝟾𝟶ᴘ ]✌**\n\n**𓆩🔻𓆪 Dɪʀᴇᴄᴛ Tᴇʟᴇɢʀᴀᴍ Fɪʟᴇs Oɴʟʏ👇**\n\n**{file_info_text}**\n\n**✅ Note : [Hᴏᴡ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ]({HOW_TO_POST_SHORT})👀**\n\n**𓆩🔻𓆪 Sᴛʀᴇᴀᴍ/Fᴀsᴛ ᴅᴏᴡɴʟᴏᴀᴅ 👇**\n\n**{stream_links_text}**\n\n**✅ Note : [Hᴏᴡ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ]({HOW_TO_POST_SHORT})👀**\n\n**Mᴏᴠɪᴇ Gʀᴏᴜᴘ 𝟸𝟺/𝟽 : @Roxy_Request_24_7**\n\n**❤️‍🔥ー𖤍 𓆩 sʜᴀʀᴇ ᴡɪᴛʜ ғʀɪᴇɴᴅs 𓆪 𖤍ー❤️‍🔥**"
+                summary_messages = f"{title_clean}, {cleaned_title}"
+                if poster:
+                    await message.reply_photo(poster, caption=summary_message)
+                else:
+                    await message.reply(summary_messages)
+                    
+                await message.delete()
+                del user_states[chat_id]
 
         else:
-            await message.reply_text('Movie not found. Please check the movie name and try again.')
-
+            return
     except Exception as e:
-        print(f"An error occurred: {e}")
-        await message.reply_text('An error occurred while fetching movie information.')
-
-def get_size(size):
-    """Get size in readable format"""
-
-    units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
-    size = float(size)
-    i = 0
-    while size >= 1024.0 and i < len(units):
-        i += 1
-        size /= 1024.0
-    return "%.2f %s" % (size, units[i])
-
-def split_list(l, n):
-    for i in range(0, len(l), n):
-        yield l[i:i + n]  
-
-
-def list_to_str(input_list):
-    if not input_list:
-        return "N/A"
-    return ', '.join(str(element) for element in input_list)
-
-def extract_movie_name(filename):
-    # Updated pattern to capture movie name along with year and exclude anything after it
-    pattern = r'(.+?\(\d{4}\)).*'
-    match = re.match(pattern, filename)
-    return match.group(1) if match else filename
+        await message.reply(f"Error occurred: {e}")  
