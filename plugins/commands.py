@@ -13,7 +13,7 @@ from pyrogram import Client, filters, enums
 from plugins.users_api import get_user, update_user_info
 from pyrogram.errors import ChatAdminRequired, FloodWait
 from pyrogram.types import *
-from utils import verify_user, check_token, check_verification, get_token
+from utils import verify_user, check_token, check_verification, get_token, get_size, gen_link, clean_title, get_poster, temp, short_link
 from config import *
 import re
 import json
@@ -417,8 +417,6 @@ from database.ia_filterdb import unpack_new_file_id
 from pyrogram.errors import ChatAdminRequired, FloodWait
 from pyrogram import Client, filters
 from pyrogram.types import Message
-from utils import get_size, gen_link, clean_title, get_poster, temp, short_link
-from config.py import HOW_TO_POST_SHORT, ADMINS, DIRECT_GEN_DB
 
 user_states = {}
 
