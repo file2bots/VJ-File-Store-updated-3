@@ -23,6 +23,7 @@ from datetime import date, datetime
 import pytz
 from aiohttp import web
 from CloudXbotz.server import web_server
+from utils import temp #
 
 import asyncio
 from pyrogram import idle
@@ -55,6 +56,8 @@ async def start():
     if ON_HEROKU:
         asyncio.create_task(ping_server())
     me = await StreamBot.get_me()
+    temp.U_NAME = me.username
+    temp.B_NAME = me.first_name
     tz = pytz.timezone('Asia/Kolkata')
     today = date.today()
     now = datetime.now(tz)
