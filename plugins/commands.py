@@ -488,18 +488,39 @@ async def handle_message(client, message):
             elif current_state == "awaiting_files":
                 if message.media:
                     file_type = message.media
-                    #forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
-                    forwarded_message = await message.copy(chat_id=LOG_CHANNEL)
+                
+                    # Correct way to copy message and get file ID
+                    copied_message = await message.copy(chat_id=DIRECT_GEN_DB)
+                    if not copied_message:
+                        await message.reply("Error: Failed to copy the message.")
+                        return
+                
                     file_id = unpack_new_file_id(getattr(message, file_type.value).file_id)
-                    #log_msg = await message.copy(chat_id=DIRECT_GEN_DB)
-                    log_msg = await message.copy(chat_id=LOG_CHANNEL)
+                
+                    # Generate log message separately
+                    log_msg = await message.copy(chat_id=DIRECT_GEN_DB)
+                    if not log_msg:
+                        await message.reply("Error: Failed to copy log message.")
+                        return
+                
+                    # Generate stream link from the copied message
                     stream_link = await gen_link(log_msg)
-                    
+                
+                    # Get file size
                     size = get_size(getattr(message, file_type.value).file_size)
+                
+                    # Delete original message
                     await message.delete()
+                
                 else:
+                    # Forward message instead of copy when there's no media
                     forwarded_message = await message.forward(chat_id=DIRECT_GEN_DB)
-                    file_id = forwarded_message.message_id
+                    if not forwarded_message:
+                        await message.reply("Error: Failed to forward the message.")
+                        return
+                
+                    file_id = forwarded_message.id  # Use .id instead of .message_id
+
 
                 user_states[chat_id]["file_ids"].append(file_id)
                 user_states[chat_id]["file_sizes"].append(size)
