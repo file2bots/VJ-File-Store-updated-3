@@ -1,9 +1,6 @@
 import motor.motor_asyncio
 import re
-import base64
-from config import DB_NAME, DB_URI, CHANNELS
-from pyrogram.file_id import FileId, encode_file_id
-from struct import pack
+from config import DB_NAME, DB_URI
 
 class Database:
     def __init__(self, uri, database_name):
@@ -34,7 +31,7 @@ class Database:
 
     async def save_file(self, media):
         """Save file in the database."""
-        file_id = unpack_new_file_id(media.file_id)
+        file_id = unpack_new_file_id(media.file_id)  # Now returns file_id directly
         file_name = clean_file_name(media.file_name)
         
         file = {
@@ -99,18 +96,8 @@ def clean_file_name(file_name):
     return ' '.join(filter(lambda x: not x.startswith('@') and not x.startswith('http') and not x.startswith('www.') and not x.startswith('t.me'), file_name.split()))
 
 def unpack_new_file_id(new_file_id):
-    """Return file_id"""
-    decoded = FileId.decode(new_file_id)
-    file_id = encode_file_id(
-        pack(
-            "<iiqq",
-            int(decoded.file_type),
-            decoded.dc_id,
-            decoded.media_id,
-            decoded.access_hash
-        )
-    )
-    return file_id
+    """Return file_id directly from Pyrogram v2.0+"""
+    return new_file_id  # No need to decode/re-encode
 
 # Initialize the single database instance
 db = Database(DB_URI, DB_NAME)
