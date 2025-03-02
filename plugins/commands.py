@@ -490,9 +490,8 @@ async def handle_message(client, message):
                 if message.media:
                     file_type = message.media
                     forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
-                    file_id = str(forwarded_message.id)  # Ensure file_id is a string
-                    encoded_file_id = base64.urlsafe_b64encode(f"file_{file_id}".encode()).decode().strip("=")  # Encode file_id
-                    
+                    file_id = str(forwarded_message.id)  # Ensure correct file ID extraction
+            
                     log_msg = await message.copy(chat_id=DIRECT_GEN_DB)
                     stream_link = await gen_link(log_msg)
             
@@ -500,12 +499,14 @@ async def handle_message(client, message):
                     await message.delete()
                 else:
                     forwarded_message = await message.forward(chat_id=DIRECT_GEN_DB)
-                    file_id = str(forwarded_message.id)  # Ensure file_id is a string
-                    encoded_file_id = base64.urlsafe_b64encode(f"file_{file_id}".encode()).decode().strip("=")  # Encode file_id
-                    stream_link = None  # No stream link in this case
-                    size = "Unknown"
+                    file_id = str(forwarded_message.id)
             
-                user_states[chat_id]["file_ids"].append(encoded_file_id)
+                # ✅ Correctly encode file ID
+                string = f"file_{file_id}"
+                encoded_file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
+            
+                # Save file data
+                user_states[chat_id]["file_ids"].append(encoded_file_id)  # Store encoded ID
                 user_states[chat_id]["file_sizes"].append(size)
                 user_states[chat_id]["stream_links"].append(stream_link)
             
@@ -514,13 +515,12 @@ async def handle_message(client, message):
                 num_files_left = user_states[chat_id]["num_files"] - files_received
             
                 if num_files_left > 0:
-                    files_text = "ғɪʟᴇ" if files_received == 1 else "ғɪʟᴇs"
-                    reply_message = await message.reply(f"**⏩ ғᴏʀᴡᴀʀᴅ ᴛʜᴇ ɴᴏ: {files_received + 1} {files_text}**")
+                    reply_message = await message.reply(f"**⏩ Forward the No: {files_received + 1} File(s)**")
+                    user_states[chat_id]["last_reply"] = reply_message                     
                 else:
-                    reply_message = await message.reply("**ɴᴏᴡ sᴇɴᴅ ᴛʜᴇ ɴᴀᴍᴇ ᴏғ ᴛʜᴇ ᴍᴏᴠɪᴇ**\n\n**ᴇx : ʟᴏᴠᴇʀ 𝟸𝟶𝟸𝟺 ʜɪɴᴅɪ ᴡᴇʙᴅʟ**")
+                    reply_message = await message.reply("**Now send the movie name**\n\n**Example: Lover 2024 Hindi WEB-DL**")                    
                     user_states[chat_id]["state"] = "awaiting_title"
-            
-                user_states[chat_id]["last_reply"] = reply_message
+                    user_states[chat_id]["last_reply"] = reply_message
             
             elif current_state == "awaiting_title":
                 title = message.text.strip()
@@ -532,17 +532,16 @@ async def handle_message(client, message):
             
                 file_info = []
                 for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
-                    long_url = f"https://t.me/{temp.U_NAME}?start=aNsH_{file_id}"
-                    short_link_url = await short_link(long_url)
+                    long_url = f"https://t.me/{temp.U_NAME}?start={file_id}"  # ✅ Use correctly encoded ID
+                    short_link_url = await short_link(long_url) or long_url  # ✅ Fallback to long URL
                     file_info.append(f"》{user_states[chat_id]['file_sizes'][i]} : {short_link_url}")
             
                 file_info_text = "\n\n".join(file_info)
             
                 stream_links_info = []
                 for i, stream_link in enumerate(user_states[chat_id]["stream_links"]):
-                    if stream_link:
-                        short_stream_link_url = await short_link(stream_link)
-                        stream_links_info.append(f"》{user_states[chat_id]['file_sizes'][i]} : {short_stream_link_url}")
+                    short_stream_link_url = await short_link(stream_link) or stream_link
+                    stream_links_info.append(f"》{user_states[chat_id]['file_sizes'][i]} : {short_stream_link_url}")
                 
                 stream_links_text = "\n\n".join(stream_links_info)                
                 summary_message = f"**🎬{title} Tamil HDRip**\n\n**[ 𝟹𝟼𝟶ᴘ☆𝟺𝟾𝟶ᴘ☆Hᴇᴠᴄ☆𝟽𝟸𝟶ᴘ☆𝟷𝟶𝟾𝟶ᴘ ]✌**\n\n**𓆩🔻𓆪 Dɪʀᴇᴄᴛ Tᴇʟᴇɢʀᴀᴍ Fɪʟᴇs Oɴʟʏ👇**\n\n**{file_info_text}**\n\n**✅ Note : [Hᴏᴡ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ]({HOW_TO_POST_SHORT})👀**\n\n**𓆩🔻𓆪 Sᴛʀᴇᴀᴍ/Fᴀsᴛ ᴅᴏᴡɴʟᴏᴀᴅ 👇**\n\n**{stream_links_text}**\n\n**✅ Note : [Hᴏᴡ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ]({HOW_TO_POST_SHORT})👀**\n\n**Mᴏᴠɪᴇ Gʀᴏᴜᴘ 𝟸𝟺/𝟽 : @Roxy_Request_24_7**\n\n**❤️‍🔥ー𖤍 𓆩 sʜᴀʀᴇ ᴡɪᴛʜ ғʀɪᴇɴᴅs 𓆪 𖤍ー❤️‍🔥**"
