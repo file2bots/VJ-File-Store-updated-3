@@ -86,6 +86,8 @@ imdb = Cinemagoer()
 
 class temp(object):
     IMDB_CAP = {}
+    U_NAME = None
+    B_NAME = None
 
 
 async def get_poster(query, bulk=False, id=False, file=None):
