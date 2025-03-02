@@ -425,6 +425,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
 import re
 import logging
+import base64
 from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong
 from database.ia_filterdb import unpack_new_file_id
 from pyrogram.errors import ChatAdminRequired, FloodWait
@@ -488,41 +489,41 @@ async def handle_message(client, message):
             elif current_state == "awaiting_files":
                 if message.media:
                     file_type = message.media
-                
-                    # Correct way to copy message and get file ID
-                    copied_message = await message.copy(chat_id=DIRECT_GEN_DB)
-                    if not copied_message:
+            
+                    # Copy the message to LOG_CHANNEL
+                    post = await message.copy(LOG_CHANNEL)
+            
+                    # Generate a base64-encoded file ID
+                    file_id = str(post.id)
+                    string = 'file_' + file_id
+                    outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
+            
+                    # Forward the message to the database
+                    forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
+                    if not forwarded_message:
                         await message.reply("Error: Failed to copy the message.")
                         return
-                
-                    file_id = unpack_new_file_id(getattr(message, file_type.value).file_id)
-                
-                    # Generate log message separately
-                    log_msg = await message.copy(chat_id=DIRECT_GEN_DB)
-                    if not log_msg:
-                        await message.reply("Error: Failed to copy log message.")
-                        return
-                
-                    # Generate stream link from the copied message
-                    stream_link = await gen_link(log_msg)
-                
-                    # Get file size
+            
+                    unpacked_file_id = unpack_new_file_id(getattr(message, file_type.value).file_id)
+                    stream_link = await gen_link(forwarded_message)
                     size = get_size(getattr(message, file_type.value).file_size)
-                
-                    # Delete original message
+            
+                    # Delete the original message
                     await message.delete()
-                
+            
                 else:
-                    # Forward message instead of copy when there's no media
+                    # Forward non-media messages
                     forwarded_message = await message.forward(chat_id=DIRECT_GEN_DB)
                     if not forwarded_message:
                         await message.reply("Error: Failed to forward the message.")
                         return
-                
-                    file_id = forwarded_message.id  # Use .id instead of .message_id
+            
+                    file_id = str(forwarded_message.id)
+                    string = 'file_' + file_id
+                    outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
 
-                user_states[chat_id]["file_ids"].append(file_id)
+                user_states[chat_id]["file_ids"].append(outstr)
                 user_states[chat_id]["file_sizes"].append(size)
                 user_states[chat_id]["stream_links"].append(stream_link)
 
