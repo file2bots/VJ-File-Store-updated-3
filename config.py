@@ -82,6 +82,7 @@ URL = environ.get("URL", "https://storefilesget.koyeb.app/")
 
 #Set True Or Fales
 LONG_IMDB_DESCRIPTION = bool(environ.get("LONG_IMDB_DESCRIPTION", False))
+MAX_LIST_ELM = environ.get("MAX_LIST_ELM", None)
 
 # This Is File Channel Where You Upload Your File Then Bot Automatically Save It In Database 
 CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHANNELS', '-1002063814391').split()]
