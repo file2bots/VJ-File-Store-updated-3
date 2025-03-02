@@ -80,6 +80,9 @@ URL = environ.get("URL", "https://storefilesget.koyeb.app/")
 
 #---------------------------------------------------------------------------------------------
 
+#Set True Or Fales
+LONG_IMDB_DESCRIPTION = bool(environ.get("LONG_IMDB_DESCRIPTION", False))
+
 # This Is File Channel Where You Upload Your File Then Bot Automatically Save It In Database 
 CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHANNELS', '-1002063814391').split()]
 
@@ -94,6 +97,7 @@ POST_SHORT_API = environ.get('POST_SHORT_API', '')
 POST_SHORT_URL = environ.get('POST_SHORT_URL', '')
 
 HOW_TO_POST_SHORT = environ.get('HOW_TO_POST_SHORT', 'https://t.me/Howtodowloa/13')
+
 
 
 
