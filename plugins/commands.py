@@ -489,41 +489,18 @@ async def handle_message(client, message):
             elif current_state == "awaiting_files":
                 if message.media:
                     file_type = message.media
-            
-                    # Copy the message to LOG_CHANNEL
-                    post = await message.copy(LOG_CHANNEL)
-            
-                    # Generate a base64-encoded file ID
-                    file_id = str(post.id)
-                    string = 'file_' + file_id
-                    outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-            
-                    # Forward the message to the database
                     forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
-                    if not forwarded_message:
-                        await message.reply("Error: Failed to copy the message.")
-                        return
-            
-                    unpacked_file_id = unpack_new_file_id(getattr(message, file_type.value).file_id)
-                    stream_link = await gen_link(forwarded_message)
+                    file_id = unpack_new_file_id(getattr(message, file_type.value).file_id)
+                    log_msg = await message.copy(chat_id=DIRECT_GEN_DB)
+                    stream_link = await gen_link(log_msg)
+                    
                     size = get_size(getattr(message, file_type.value).file_size)
-            
-                    # Delete the original message
                     await message.delete()
-            
                 else:
-                    # Forward non-media messages
                     forwarded_message = await message.forward(chat_id=DIRECT_GEN_DB)
-                    if not forwarded_message:
-                        await message.reply("Error: Failed to forward the message.")
-                        return
-            
-                    file_id = str(forwarded_message.id)
-                    string = 'file_' + file_id
-                    outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
+                    file_id = forwarded_message.message_id
 
-
-                user_states[chat_id]["file_ids"].append(outstr)
+                user_states[chat_id]["file_ids"].append(file_id)
                 user_states[chat_id]["file_sizes"].append(size)
                 user_states[chat_id]["stream_links"].append(stream_link)
 
