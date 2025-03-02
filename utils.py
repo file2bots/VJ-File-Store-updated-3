@@ -77,7 +77,8 @@ async def check_verification(bot, userid):
     else:
         return False  
         
-#---------------------------------------------------------------------------------------
+#-------------------------------------IMDB POSTER----------------------------------------#
+
 from imdb import Cinemagoer
 from bs4 import BeautifulSoup
 
@@ -197,6 +198,16 @@ def get_file_id(msg: Message):
                 setattr(obj, "message_type", message_type)
                 return obj
 
+def list_to_str(k):
+    if not k:
+        return "N/A"
+    elif len(k) == 1:
+        return str(k[0])
+    elif MAX_LIST_ELM:
+        k = k[:int(MAX_LIST_ELM)]
+        return ' '.join(f'{elem}, ' for elem in k)
+    else:
+        return ' '.join(f'{elem}, ' for elem in k)
 
 #------------------------------------------------------
 #POST FEATURES 
