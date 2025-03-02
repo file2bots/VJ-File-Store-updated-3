@@ -540,7 +540,8 @@ async def handle_message(client, message):
             
                 stream_links_info = []
                 for i, stream_link in enumerate(user_states[chat_id]["stream_links"]):
-                    short_stream_link_url = await short_link(stream_link) or stream_link
+                    long_stream_url = stream_link[0]
+                    short_stream_link_url = await short_link(long_stream_url)
                     stream_links_info.append(f"》{user_states[chat_id]['file_sizes'][i]} : {short_stream_link_url}")
                 
                 stream_links_text = "\n\n".join(stream_links_info)                
