@@ -30,7 +30,7 @@ from utils import (
 )
 
 # Import TechVJ utilities safely
-from TechVJ.utils.file_properties import get_name, get_hash, get_media_file_size
+from CloudXbotz.utils.file_properties import get_name, get_hash, get_media_file_size
 
 # Initialize logger
 logger = logging.getLogger(__name__)
