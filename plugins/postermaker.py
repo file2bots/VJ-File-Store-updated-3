@@ -66,6 +66,9 @@ app = Client("AutoPostBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKE
 # 📌 Auto-Save and Post on File Upload
 @app.on_message(filters.channel & (filters.document | filters.video))
 async def auto_post(client, message):
+    if message.chat.id != DATABASE_CHANNEL:
+        return  # Ignore messages from other channels
+
     file_name = message.document.file_name if message.document else message.video.file_name
     if not file_name:
         return
@@ -90,7 +93,7 @@ async def auto_post(client, message):
     caption = caption_format.format(title=title, year=year, imdb_link=imdb_link)
 
     buttons = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🎥 Download", url=f"https://t.me/{BOT_USERNAME}?start={title}")]
+        [InlineKeyboardButton("🎥 Download", url=f"https://t.me/{app.me.username}?start={title}")]
     ])
 
     if poster_url:
@@ -128,4 +131,3 @@ async def send_download_links(client, message):
 async def send_selected_file(client, callback_query):
     file_id = callback_query.data.split("_")[1]
     await callback_query.message.reply_document(file_id)
-
