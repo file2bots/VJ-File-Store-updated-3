@@ -82,6 +82,7 @@ URL = environ.get("URL", "https://storefilesget.koyeb.app/")
 
 TARGET_CHANNEL = int(environ.get("TARGET_CHANNEL", "-1001234567890"))
 ADMIN_ID = int(os.getenv("ADMIN_ID", "1397269319"))
+DATABASE_CHANNEL = int(os.getenv("DATABASE_CHANNEL", "-1002063814391"))
 TARGET_CHANNEL = int(os.getenv("TARGET_CHANNEL", "-1001842318978"))
 
 #---------------------------------------------------------------------------------------------
