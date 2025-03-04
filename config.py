@@ -80,6 +80,12 @@ URL = environ.get("URL", "https://storefilesget.koyeb.app/")
 
 #---------------------------------------------------------------------------------------------
 
+TARGET_CHANNEL = int(environ.get("TARGET_CHANNEL", "-1001234567890"))
+ADMIN_ID = int(os.getenv("ADMIN_ID", "1397269319"))
+TARGET_CHANNEL = int(os.getenv("TARGET_CHANNEL", "-1001842318978"))
+
+#---------------------------------------------------------------------------------------------
+
 #Set True Or Fales
 LONG_IMDB_DESCRIPTION = bool(environ.get("LONG_IMDB_DESCRIPTION", False))
 MAX_LIST_ELM = environ.get("MAX_LIST_ELM", None)
