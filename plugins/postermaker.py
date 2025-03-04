@@ -11,7 +11,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 #API_ID = int(os.getenv("API_ID", "16023154"))
 #API_HASH = os.getenv("API_HASH", "c216393ab439dd055858680916a3444b")
 #BOT_TOKEN = os.getenv("BOT_TOKEN", "7203842216:AAHZx2eo9rSQiyW0BBcyZU72Tbzg887x3bc")
-#MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://wemedia360:CuF1r3VUPJkYpZ7k@file2linkcaptoingen.fie8o.mongodb.net/?retryWrites=true&w=majority&appName=File2Linkcaptoingen")
+#DB_URI = os.getenv("MONGO_URI", "mongodb+srv://wemedia360:CuF1r3VUPJkYpZ7k@file2linkcaptoingen.fie8o.mongodb.net/?retryWrites=true&w=majority&appName=File2Linkcaptoingen")
 #TARGET_CHANNEL = int(os.getenv("TARGET_CHANNEL", "-1001842318978"))
 #ADMIN_ID = int(os.getenv("ADMIN_ID", "1397269319"))
 #BOT_USERNAME = os.getenv("BOT_USERNAME", "StoreFilesGetBot")
@@ -129,5 +129,3 @@ async def send_selected_file(client, callback_query):
     file_id = callback_query.data.split("_")[1]
     await callback_query.message.reply_document(file_id)
 
-# 🚀 Run Bot
-app.run()
