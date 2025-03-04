@@ -2,6 +2,7 @@ import os
 import re
 import logging
 import imdb
+import traceback
 from config import *
 from motor.motor_asyncio import AsyncIOMotorClient
 from pyrogram import Client, filters
@@ -64,42 +65,53 @@ async def get_files(title):
 bot = Client("AutoPostBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # 📌 Auto-Save and Post on File Upload
-#@bot.on_message(filters.channel & (filters.document | filters.video))
-@bot.on_message(filters.channel & (filters.document | filters.video) & ~filters.forwarded)
+@bot.on_message(filters.channel & (filters.document | filters.video) & filters.forwarded)
 async def auto_post(client, message):
-    print(f"✅ Received a file in {message.chat.id}")  # Debugging
+    try:
+        print(f"✅ Received a file in {message.chat.id}")  # Debugging
 
-    file_name = message.document.file_name if message.document else message.video.file_name
-    if not file_name:
-        return
+        if message.chat.id != DATABASE_CHANNEL:
+            print("❌ Ignored file from a different channel")
+            return  
 
-    title = " ".join(file_name.split(".")[:-1])
-    movie_data = await get_poster(title)
+        file_name = message.document.file_name if message.document else message.video.file_name
+        if not file_name:
+            print("❌ File has no name")
+            return
 
-    poster_url = movie_data.get("poster") if movie_data else None
-    imdb_link = movie_data.get("imdb_link") if movie_data else "N/A"
-    year = movie_data.get("year") if movie_data else "Unknown"
+        title = " ".join(file_name.split(".")[:-1])
+        movie_data = await get_poster(title)
 
-    file_data = {
-        "file_id": message.document.file_id if message.document else message.video.file_id,
-        "file_name": file_name,
-        "file_size": message.document.file_size if message.document else message.video.file_size,
-        "title": title,
-        "year": year
-    }
-    await save_file(file_data)
+        poster_url = movie_data.get("poster") if movie_data else None
+        imdb_link = movie_data.get("imdb_link") if movie_data else "N/A"
+        year = movie_data.get("year") if movie_data else "Unknown"
 
-    caption_format = await get_caption_format()
-    caption = caption_format.format(title=title, year=year, imdb_link=imdb_link)
+        file_data = {
+            "file_id": message.document.file_id if message.document else message.video.file_id,
+            "file_name": file_name,
+            "file_size": message.document.file_size if message.document else message.video.file_size,
+            "title": title,
+            "year": year
+        }
+        await save_file(file_data)
 
-    buttons = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🎥 Download", url=f"https://t.me/{bot.me.username}?start={title}")]
-    ])
+        caption_format = await get_caption_format()
+        caption = caption_format.format(title=title, year=year, imdb_link=imdb_link)
 
-    if poster_url:
-        await bot.send_photo(TARGET_CHANNEL, poster_url, caption=caption, reply_markup=buttons)
-    else:
-        await bot.send_message(TARGET_CHANNEL, caption, reply_markup=buttons)
+        buttons = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🎥 Download", url=f"https://t.me/{bot.me.username}?start={title}")]
+        ])
+
+        if poster_url:
+            await bot.send_photo(TARGET_CHANNEL, poster_url, caption=caption, reply_markup=buttons)
+        else:
+            await bot.send_message(TARGET_CHANNEL, caption, reply_markup=buttons)
+
+        print("✅ File posted successfully!")
+
+    except Exception as e:
+        print(f"❌ Error in auto_post: {e}")
+        traceback.print_exc()
 
 # 📥 Handle File Downloads in Bot
 @bot.on_message(filters.command("start") & filters.private)
