@@ -14,7 +14,7 @@ from datetime import date, datetime
 from config import LOG_CHANNEL, ON_HEROKU, CLONE_MODE, PORT
 from Script import script
 from CloudXbotz.server import web_server
-from CloudXbotz.bot import StreamBot
+from CloudXbotz.bot import StreamBot  # Ensure StreamBot is imported
 from CloudXbotz.utils.keepalive import ping_server
 from CloudXbotz.bot.clients import initialize_clients
 from utils import temp
@@ -30,7 +30,11 @@ files = glob.glob(ppath)
 
 # 🔄 Async Startup Function
 async def start():
-    print("\n🔄 Initializing CloudXbotz Bot...")
+    print("\n🔄 Starting CloudXbotz Bot...")
+
+    # ✅ Explicitly start the bot
+    await StreamBot.start()  # 🔥 FIX: Start the bot before calling get_me()
+
     bot_info = await StreamBot.get_me()
     StreamBot.username = bot_info.username
 
