@@ -64,10 +64,10 @@ async def get_files(title):
 bot = Client("AutoPostBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # 📌 Auto-Save and Post on File Upload
+#@bot.on_message(filters.channel & (filters.document | filters.video))
 @bot.on_message(filters.channel & (filters.document | filters.video) & ~filters.forwarded)
 async def auto_post(client, message):
-    if message.chat.id != DATABASE_CHANNEL:
-        return  # Ignore messages from other channels
+    print(f"✅ Received a file in {message.chat.id}")  # Debugging
 
     file_name = message.document.file_name if message.document else message.video.file_name
     if not file_name:
