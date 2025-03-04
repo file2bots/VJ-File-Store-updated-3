@@ -36,7 +36,7 @@ async def get_poster(query):
     year_match = re.search(r'[1-2]\d{3}$', query)
     year = year_match.group() if year_match else None
     title = query.replace(year, "").strip() if year else query
-    
+
     movie_results = imdb_api.search_movie(title)
     if not movie_results:
         return None
@@ -46,7 +46,7 @@ async def get_poster(query):
     movie_data = imdb_api.get_movie(movie_id)
 
     return {
-        'title': movie_data.get('title'),
+        'title': movie_data.get('title', title),
         'year': movie_data.get('year', "Unknown"),
         'poster': movie_data.get('full-size cover url'),
         'imdb_link': f'https://www.imdb.com/title/tt{movie_id}'
@@ -64,7 +64,7 @@ async def get_files(title):
 bot = Client("AutoPostBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # 📌 Auto-Save and Post on File Upload
-@bot.on_message(filters.channel & (filters.document | filters.video))
+@bot.on_message(filters.channel & (filters.document | filters.video) & ~filters.forwarded)
 async def auto_post(client, message):
     if message.chat.id != DATABASE_CHANNEL:
         return  # Ignore messages from other channels
