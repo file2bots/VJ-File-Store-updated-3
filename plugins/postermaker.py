@@ -8,6 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+DATABASE_CHANNEL = -1002063814391
 # 🔧 Bot Configurations
 #API_ID = int(os.getenv("API_ID", "16023154"))
 #API_HASH = os.getenv("API_HASH", "c216393ab439dd055858680916a3444b")
@@ -65,7 +66,7 @@ async def get_files(title):
 bot = Client("AutoPostBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # 📌 Auto-Save and Post on File Upload
-@bot.on_message(filters.channel & (filters.document | filters.video) & filters.forwarded)
+@bot.on_message(filters.channel & (filters.document | filters.video))
 async def auto_post(client, message):
     try:
         print(f"✅ Received a forwarded file in {message.chat.id}")
