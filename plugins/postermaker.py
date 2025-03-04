@@ -61,10 +61,10 @@ async def get_files(title):
     return await files_collection.find({"title": title}).to_list(length=20)
 
 # 🤖 Pyrogram Bot
-app = Client("AutoPostBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+bot = Client("AutoPostBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # 📌 Auto-Save and Post on File Upload
-@app.on_message(filters.channel & (filters.document | filters.video))
+@bot.on_message(filters.channel & (filters.document | filters.video))
 async def auto_post(client, message):
     if message.chat.id != DATABASE_CHANNEL:
         return  # Ignore messages from other channels
@@ -93,16 +93,16 @@ async def auto_post(client, message):
     caption = caption_format.format(title=title, year=year, imdb_link=imdb_link)
 
     buttons = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🎥 Download", url=f"https://t.me/{app.me.username}?start={title}")]
+        [InlineKeyboardButton("🎥 Download", url=f"https://t.me/{bot.me.username}?start={title}")]
     ])
 
     if poster_url:
-        await client.send_photo(TARGET_CHANNEL, poster_url, caption=caption, reply_markup=buttons)
+        await bot.send_photo(TARGET_CHANNEL, poster_url, caption=caption, reply_markup=buttons)
     else:
-        await client.send_message(TARGET_CHANNEL, caption, reply_markup=buttons)
+        await bot.send_message(TARGET_CHANNEL, caption, reply_markup=buttons)
 
 # 📥 Handle File Downloads in Bot
-@app.on_message(filters.command("start") & filters.private)
+@bot.on_message(filters.command("start") & filters.private)
 async def send_download_links(client, message):
     args = message.text.split(" ", 1)
     if len(args) < 2:
@@ -127,7 +127,7 @@ async def send_download_links(client, message):
     await message.reply(reply_text, reply_markup=InlineKeyboardMarkup(buttons))
 
 # 📤 Send Selected File on Button Click
-@app.on_callback_query(filters.regex(r"download_(.*)"))
+@bot.on_callback_query(filters.regex(r"download_(.*)"))
 async def send_selected_file(client, callback_query):
     file_id = callback_query.data.split("_")[1]
     await callback_query.message.reply_document(file_id)
