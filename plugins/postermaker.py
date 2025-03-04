@@ -2,21 +2,22 @@ import os
 import re
 import logging
 import imdb
+from config import *
 from motor.motor_asyncio import AsyncIOMotorClient
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # 🔧 Bot Configurations
-API_ID = int(os.getenv("API_ID", "16023154"))
-API_HASH = os.getenv("API_HASH", "c216393ab439dd055858680916a3444b")
-BOT_TOKEN = os.getenv("BOT_TOKEN", "7203842216:AAHZx2eo9rSQiyW0BBcyZU72Tbzg887x3bc")
-MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://wemedia360:CuF1r3VUPJkYpZ7k@file2linkcaptoingen.fie8o.mongodb.net/?retryWrites=true&w=majority&appName=File2Linkcaptoingen")
-TARGET_CHANNEL = int(os.getenv("TARGET_CHANNEL", "-1001842318978"))
-ADMIN_ID = int(os.getenv("ADMIN_ID", "1397269319"))
-BOT_USERNAME = os.getenv("BOT_USERNAME", "StoreFilesGetBot")
+#API_ID = int(os.getenv("API_ID", "16023154"))
+#API_HASH = os.getenv("API_HASH", "c216393ab439dd055858680916a3444b")
+#BOT_TOKEN = os.getenv("BOT_TOKEN", "7203842216:AAHZx2eo9rSQiyW0BBcyZU72Tbzg887x3bc")
+#MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://wemedia360:CuF1r3VUPJkYpZ7k@file2linkcaptoingen.fie8o.mongodb.net/?retryWrites=true&w=majority&appName=File2Linkcaptoingen")
+#TARGET_CHANNEL = int(os.getenv("TARGET_CHANNEL", "-1001842318978"))
+#ADMIN_ID = int(os.getenv("ADMIN_ID", "1397269319"))
+#BOT_USERNAME = os.getenv("BOT_USERNAME", "StoreFilesGetBot")
 
 # 📂 MongoDB Setup
-db_client = AsyncIOMotorClient(MONGO_URI)
+db_client = AsyncIOMotorClient(DB_URI)
 db = db_client["telegram_bot"]
 files_collection = db["files"]
 config_collection = db["config"]
