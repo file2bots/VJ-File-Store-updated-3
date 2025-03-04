@@ -65,13 +65,14 @@ async def get_files(title):
 bot = Client("AutoPostBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # 📌 Auto-Save and Post on File Upload
-@bot.on_message(filters.private & (filters.document | filters.video) & filters.forwarded)
+@bot.on_message(filters.channel & (filters.document | filters.video) & filters.forwarded)
 async def auto_post(client, message):
-    print(f"✅ Received a forwarded file in {message.chat.id}")
+    try:
+        print(f"✅ Received a forwarded file in {message.chat.id}")
 
-    if message.chat.id != DATABASE_CHANNEL:
-        print("❌ Ignored message from a different channel.")
-        return 
+        if message.chat.id != DATABASE_CHANNEL:
+            print("❌ Ignored message from a different channel.")
+            return  # ✅ Fixed: This return is correctly placed
 
         file_name = message.document.file_name if message.document else message.video.file_name
         if not file_name:
