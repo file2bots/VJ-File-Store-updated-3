@@ -432,48 +432,34 @@ from pyrogram.errors import ChatAdminRequired, FloodWait
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 
-POST_CHANNEL = int(os.environ.get("POST_CHANNEL", "-1001842318978"))
 user_states = {}
-
-user_states = {}
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 async def delete_previous_reply(chat_id):
-    """Deletes the last bot reply to prevent message clutter."""
     if chat_id in user_states and "last_reply" in user_states[chat_id]:
         try:
             await user_states[chat_id]["last_reply"].delete()
         except Exception as e:
-            logger.error(f"Failed to delete message: {e}")
+            print(f"Failed to delete message: {e}")
 
 @Client.on_message(filters.command("post") & filters.user(ADMINS))
 async def post_command(client, message):
-    """Handles the /post command initiation."""
     try:
-        await message.reply(
-            "**🎬 Welcome to the Rare Movie Post Feature!**\n\n"
-            "👉🏻 Send the number of files you want to add.\n\n"
-            "‼️ *Note:* Only enter a number.", disable_web_page_preview=True
-        )
+        await message.reply("**Welcome to the Rare Movie Post Feature!**\n\n"
+                            "👉🏻 Send the number of files you want to add.\n\n"
+                            "‼️ *Note:* Only enter a number.", disable_web_page_preview=True)
         user_states[message.chat.id] = {"state": "awaiting_num_files"}
     except Exception as e:
-        await message.reply(f"❌ Error occurred: {e}")
-        logger.error(f"Error in /post command: {e}")
+        await message.reply(f"Error occurred: {e}")
 
 @Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("post"))
 async def handle_message(client, message):
-    """Handles different user states after the /post command."""
     try:
         chat_id = message.chat.id
         await delete_previous_reply(chat_id)
-
+        
         if chat_id in user_states:
             current_state = user_states[chat_id]["state"]
 
-            # Step 1: Expecting number of files
             if current_state == "awaiting_num_files":
                 try:
                     num_files = int(message.text.strip())
@@ -496,9 +482,8 @@ async def handle_message(client, message):
                     user_states[chat_id]["last_reply"] = reply_message
                         
                 except ValueError:
-                    await message.reply("❌ Invalid input. Please enter a valid number.")
+                    await message.reply("Invalid input. Please enter a valid number.")
 
-            # Step 2: Receiving files
             elif current_state == "awaiting_files":
                 if message.media:
                     forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
@@ -528,7 +513,6 @@ async def handle_message(client, message):
                         user_states[chat_id]["state"] = "awaiting_title"
                         user_states[chat_id]["last_reply"] = reply_message
             
-            # Step 3: Expecting Movie Title
             elif current_state == "awaiting_title":
                 title = message.text.strip()
                 title_clean = re.sub(r"[()\[\]{}:;'!]", "", title)
@@ -546,7 +530,10 @@ async def handle_message(client, message):
                     size = user_states[chat_id]['file_sizes'][i]
                     label = f"{size} [ {quality} ]" if quality else size
 
-                    buttons.append([InlineKeyboardButton(label, url=short_link_url)])
+                    if i % 2 == 0:
+                        buttons.append([InlineKeyboardButton(label, url=short_link_url)])
+                    else:
+                        buttons[-1].append(InlineKeyboardButton(label, url=short_link_url))
 
                 caption = (f"**🎬 {title} Tamil HDRip**\n\n"
                            "**[ 360p☆480p☆HEVC☆720p☆1080p ]✌**\n\n"
@@ -556,24 +543,16 @@ async def handle_message(client, message):
                            "**❤️‍🔥 Share with Friends ❤️‍🔥**")
 
                 keyboard = InlineKeyboardMarkup(buttons)
-                post_message = await message.reply_photo(poster, caption=caption, reply_markup=keyboard) if poster else await message.reply(caption, reply_markup=keyboard)
-                
-                confirmation_keyboard = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("✅ Yes", callback_data=f"confirm_post:{post_message.message_id}"),
-                     InlineKeyboardButton("❌ No", callback_data="cancel_post")]
-                ])
-                
-                await message.reply("Do you want to post this message in your post channel?", reply_markup=confirmation_keyboard)
-                await message.delete()
-                user_states[chat_id]["last_post_message_id"] = post_message.message_id
 
-@Client.on_callback_query(filters.regex("^confirm_post:"))
-async def confirm_post(client, callback_query: CallbackQuery):
-    """Handles post confirmation and posts to the channel."""
-    message_id = int(callback_query.data.split(":")[-1])
-    try:
-        await client.copy_message(chat_id=POST_CHANNEL, from_chat_id=callback_query.message.chat.id, message_id=message_id)
-        await callback_query.answer("✅ Posted successfully!", show_alert=True)
+                if poster:
+                    await message.reply_photo(poster, caption=caption, reply_markup=keyboard)
+                else:
+                    await message.reply(caption, reply_markup=keyboard)
+                    
+                await message.delete()
+                del user_states[chat_id]
+
+        else:
+            return
     except Exception as e:
-        logger.error(f"Error posting: {e}")
-        await callback_query.answer(f"❌ Error posting: {e}", show_alert=True)
+        await message.reply(f"Error occurred: {e}")
