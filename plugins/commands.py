@@ -544,22 +544,22 @@ async def handle_message(client, message):
                            "**❤️‍🔥 Share with Friends ❤️‍🔥**")
 
                 keyboard = InlineKeyboardMarkup(buttons)
-
-                if poster:
-                    post_message = await message.reply_photo(poster, caption=caption, reply_markup=keyboard)
-                else:
-                    post_message = await message.reply(caption, reply_markup=keyboard)
-                    
+                post_message = await message.reply_photo(poster, caption=caption, reply_markup=keyboard) if poster else await message.reply(caption, reply_markup=keyboard)
+                
                 confirmation_keyboard = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("✅ Yes", callback_data=f"confirm_post_{POST_CHANNEL}"),
+                    [InlineKeyboardButton("✅ Yes", callback_data=f"confirm_post_{post_message.message_id}"),
                      InlineKeyboardButton("❌ No", callback_data="cancel_post")]
                 ])
                 
                 await message.reply("Do you want to post this message in your post channel?", reply_markup=confirmation_keyboard)
                 await message.delete()
-                del user_states[chat_id]
+                user_states[chat_id]["last_post_message_id"] = post_message.message_id
 
-        else:
-            return
+@Client.on_callback_query(filters.regex("^confirm_post_"))
+async def confirm_post(client, callback_query: CallbackQuery):
+    message_id = int(callback_query.data.split("_")[-1])
+    try:
+        await client.forward_messages(chat_id=POST_CHANNEL, from_chat_id=callback_query.message.chat.id, message_ids=message_id)
+        await callback_query.answer("Posted successfully!", show_alert=True)
     except Exception as e:
-        await message.reply(f"Error occurred: {e}")
+        await callback_query.answer(f"Error posting: {e}", show_alert=True)
