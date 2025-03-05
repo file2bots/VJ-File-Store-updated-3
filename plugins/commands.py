@@ -475,7 +475,6 @@ async def handle_message(client, message):
                         "files_received": 0,
                         "file_ids": [],
                         "file_sizes": [],
-                        "stream_links": [],
                         "qualities": []
                     }
 
@@ -489,8 +488,6 @@ async def handle_message(client, message):
                 if message.media:
                     forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
                     file_id = str(forwarded_message.id)
-                    log_msg = await message.copy(chat_id=DIRECT_GEN_DB)
-                    stream_link = await gen_link(log_msg)
 
                     size = get_size(message.document.file_size) if message.document else "Unknown"
                     quality_match = re.search(r"(480p|720p|1080p|HEVC|HDRip)", message.caption or "", re.IGNORECASE)
@@ -501,7 +498,6 @@ async def handle_message(client, message):
                     encoded_file_id = base64.urlsafe_b64encode(f"file_{file_id}".encode("ascii")).decode().strip("=")
                     user_states[chat_id]["file_ids"].append(encoded_file_id)
                     user_states[chat_id]["file_sizes"].append(size)
-                    user_states[chat_id]["stream_links"].append(stream_link)
                     user_states[chat_id]["qualities"].append(quality)
 
                     user_states[chat_id]["files_received"] += 1
@@ -536,28 +532,14 @@ async def handle_message(client, message):
 
                     buttons.append([InlineKeyboardButton(label, url=short_link_url)])
 
-                stream_buttons = []
-                for i, stream_link in enumerate(user_states[chat_id]["stream_links"]):
-                    if isinstance(stream_link, tuple):
-                        stream_link = stream_link[0]
-                    short_stream_link_url = await short_link(stream_link) or stream_link
-
-                    quality = user_states[chat_id]['qualities'][i] or ""
-                    size = user_states[chat_id]['file_sizes'][i]
-                    label = f"{size} [{quality}]" if quality else size
-
-                    stream_buttons.append([InlineKeyboardButton(label, url=short_stream_link_url)])
-
                 caption = (f"**🎬 {title} Tamil HDRip**\n\n"
                            "**[ 360p☆480p☆HEVC☆720p☆1080p ]✌**\n\n"
                            "**𓆩🔻𓆪 Direct Telegram Files 👇**\n\n"
                            "**✅ Note : [How to Download]({HOW_TO_POST_SHORT}) 👀**\n\n"
-                           "**𓆩🔻𓆪 Stream/Fast Download 👇**\n\n"
-                           "**✅ Note : [How to Download]({HOW_TO_POST_SHORT}) 👀**\n\n"
                            "**Movie Group 24/7 : @Roxy_Request_24_7**\n\n"
                            "**❤️‍🔥 Share with Friends ❤️‍🔥**")
 
-                keyboard = InlineKeyboardMarkup(buttons + stream_buttons)
+                keyboard = InlineKeyboardMarkup(buttons)
 
                 if poster:
                     await message.reply_photo(poster, caption=caption, reply_markup=keyboard)
