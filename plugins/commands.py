@@ -531,10 +531,7 @@ async def handle_message(client, message):
                     size = user_states[chat_id]['file_sizes'][i]
                     label = f"{size} [ {quality} ]" if quality else size
 
-                    if i % 2 == 0:
-                        buttons.append([InlineKeyboardButton(label, url=short_link_url)])
-                    else:
-                        buttons[-1].append(InlineKeyboardButton(label, url=short_link_url))
+                    buttons.append([InlineKeyboardButton(label, url=short_link_url)])
 
                 caption = (f"**🎬 {title} Tamil HDRip**\n\n"
                            "**[ 360p☆480p☆HEVC☆720p☆1080p ]✌**\n\n"
@@ -547,7 +544,7 @@ async def handle_message(client, message):
                 post_message = await message.reply_photo(poster, caption=caption, reply_markup=keyboard) if poster else await message.reply(caption, reply_markup=keyboard)
                 
                 confirmation_keyboard = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("✅ Yes", callback_data=f"confirm_post_{post_message.message_id}"),
+                    [InlineKeyboardButton("✅ Yes", callback_data=f"confirm_post:{post_message.message_id}"),
                      InlineKeyboardButton("❌ No", callback_data="cancel_post")]
                 ])
                 
@@ -555,20 +552,12 @@ async def handle_message(client, message):
                 await message.delete()
                 user_states[chat_id]["last_post_message_id"] = post_message.message_id
 
-@Client.on_callback_query(filters.regex("^confirm_post_"))
+@Client.on_callback_query(filters.regex("^confirm_post:"))
 async def confirm_post(client, callback_query: CallbackQuery):
-    message_id = int(callback_query.data.split("_")[-1])
-    chat_id = callback_query.message.chat.id  # Make sure this is the correct chat ID
-    
+    message_id = int(callback_query.data.split(":")[-1])
     try:
-        # Ensure message exists before forwarding
-        if message_id:
-            await client.forward_messages(chat_id=POST_CHANNEL, from_chat_id=chat_id, message_ids=message_id)
-            await callback_query.answer("Posted successfully!", show_alert=True)
-        else:
-            await callback_query.answer("Error: Message not found!", show_alert=True)
-
+        await client.copy_message(chat_id=POST_CHANNEL, from_chat_id=callback_query.message.chat.id, message_id=message_id)
+        await callback_query.answer("Posted successfully!", show_alert=True)
     except Exception as e:
-        await callback_query.answer(f"Error posting: {str(e)}", show_alert=True)
-
-
+        print(f"Error posting: {e}")
+        await callback_query.answer(f"Error posting: {e}", show_alert=True)
