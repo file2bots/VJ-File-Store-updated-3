@@ -566,6 +566,9 @@ async def handle_message(client, message):
                 "post_data": {"caption": caption, "poster": poster, "keyboard": keyboard}
             })
             user_states[chat_id]["last_reply"] = reply
+            
+     except Exception as e:
+        await message.reply(f"Error occurred: {e}")      
 
 @Client.on_callback_query(filters.regex(r"post_channel_(.+)"))
 async def handle_channel_selection(client, callback_query):
@@ -589,8 +592,6 @@ async def handle_channel_selection(client, callback_query):
         await callback_query.message.edit(f"❌ **Failed to send post:** {e}")
 
     del user_states[chat_id]
-
-
 
         
 #--------------------------Post Code with Caption And Poster-------------------------------#
