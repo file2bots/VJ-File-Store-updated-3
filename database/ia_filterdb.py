@@ -7,7 +7,6 @@ class Database:
         self._client = motor.motor_asyncio.AsyncIOMotorClient(uri)
         self.db = self._client[database_name]
         self.col = self.db.files
-        self.config_col = self.db.config  # Define the config collection
 
     def new_user(self, id, name):
         return dict(id=id, name=name)
@@ -29,11 +28,6 @@ class Database:
 
     async def delete_user(self, user_id):
         await self.col.delete_many({'id': int(user_id)})
-
-    async def get_caption_format(self):
-        """Fetch custom caption format from the database."""
-        config = await self.config_col.find_one({"_id": "caption_format"})
-        return config["format"] if config else "🎬 **Title:** {title}\n📅 **Year:** {year}\n⭐ **IMDb:** [{imdb_link}]({imdb_link})"
 
     async def save_file(self, media):
         """Save file in the database."""
@@ -72,7 +66,7 @@ class Database:
     async def get_search_results(self, query, max_results=10, offset=0):
         """For given query return (results, next_offset)"""
         query = query.strip()
-        raw_pattern = r'(\b|[.+-_])' + re.escape(query) + r'(\b|[.+-_])' if query else '.'
+        raw_pattern = r'(|[.+-_])' + query + r'(|[.+-_])' if query else '.'
         
         try:
             regex = re.compile(raw_pattern, flags=re.IGNORECASE)
