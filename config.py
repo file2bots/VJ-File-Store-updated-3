@@ -80,13 +80,6 @@ URL = environ.get("URL", "https://storefilesget.koyeb.app/")
 
 #---------------------------------------------------------------------------------------------
 
-TARGET_CHANNEL = int(environ.get("TARGET_CHANNEL", "-1001234567890"))
-ADMIN_ID = int(os.getenv("ADMIN_ID", "1397269319"))
-DATABASE_CHANNEL = int(os.getenv("DATABASE_CHANNEL", "-1002063814391"))
-TARGET_CHANNEL = int(os.getenv("TARGET_CHANNEL", "-1001842318978"))
-
-#---------------------------------------------------------------------------------------------
-
 #Set True Or Fales
 LONG_IMDB_DESCRIPTION = bool(environ.get("LONG_IMDB_DESCRIPTION", False))
 MAX_LIST_ELM = environ.get("MAX_LIST_ELM", None)
@@ -106,14 +99,3 @@ POST_SHORT_URL = environ.get('POST_SHORT_URL', '')
 
 HOW_TO_POST_SHORT = environ.get('HOW_TO_POST_SHORT', 'https://t.me/Howtodowloa/13')
 
-
-
-
-
-
-
-
-
-
-
-    
