@@ -429,6 +429,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 #poster make features developer - Ansh Vachhani
 
 import re
+import traceback
 import os
 import logging
 import base64
@@ -566,9 +567,13 @@ async def handle_message(client, message):
                 "post_data": {"caption": caption, "poster": poster, "keyboard": keyboard}
             })
             user_states[chat_id]["last_reply"] = reply
-            
-     except Exception as e:
-        await message.reply(f"Error occurred: {e}")      
+
+    try:
+        some_function()
+    except Exception as e:
+        print("An error occurred:")
+        traceback.print_exc()  # Prints the full error traceback
+      
 
 @Client.on_callback_query(filters.regex(r"post_channel_(.+)"))
 async def handle_channel_selection(client, callback_query):
