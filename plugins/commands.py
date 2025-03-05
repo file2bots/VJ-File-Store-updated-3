@@ -432,6 +432,7 @@ from pyrogram.errors import ChatAdminRequired, FloodWait
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 
+POST_CHANNEL = int(os.environ.get("POST_CHANNEL", "-1001842318978"))
 user_states = {}
 
 async def delete_previous_reply(chat_id):
@@ -545,10 +546,16 @@ async def handle_message(client, message):
                 keyboard = InlineKeyboardMarkup(buttons)
 
                 if poster:
-                    await message.reply_photo(poster, caption=caption, reply_markup=keyboard)
+                    post_message = await message.reply_photo(poster, caption=caption, reply_markup=keyboard)
                 else:
-                    await message.reply(caption, reply_markup=keyboard)
+                    post_message = await message.reply(caption, reply_markup=keyboard)
                     
+                confirmation_keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("✅ Yes", callback_data=f"confirm_post_{POST_CHANNEL}"),
+                     InlineKeyboardButton("❌ No", callback_data="cancel_post")]
+                ])
+                
+                await message.reply("Do you want to post this message in your post channel?", reply_markup=confirmation_keyboard)
                 await message.delete()
                 del user_states[chat_id]
 
