@@ -559,7 +559,12 @@ async def handle_message(client, message):
 async def confirm_post(client: Client, callback_query: CallbackQuery):
     try:
         message_id = int(callback_query.data.split("_")[-1])
-        await client.forward_messages(chat_id=POST_CHANNEL, from_chat_id=callback_query.message.chat.id, message_ids=message_id)
+        await client.forward_messages(
+            chat_id=POST_CHANNEL,
+            from_chat_id=callback_query.message.chat.id,
+            message_ids=message_id
+        )
         await callback_query.answer("✅ Posted successfully!", show_alert=True)
     except Exception as e:
-        await callback_query.answer(f"❌ Error posting: {str(e)}", show_alert=True)
+        print(f"Error in confirm_post: {e}")  # Log error
+        await callback_query.answer("❌ Failed to post. Check logs.", show_alert=True)
