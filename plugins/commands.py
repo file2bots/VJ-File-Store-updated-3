@@ -528,9 +528,12 @@ async def handle_message(client, message):
                     
                     quality = user_states[chat_id]['qualities'][i] or ""
                     size = user_states[chat_id]['file_sizes'][i]
-                    label = f"{size} [{quality}]" if quality else size
+                    label = f"{size} [ {quality} ]" if quality else size
 
-                    buttons.append([InlineKeyboardButton(label, url=short_link_url)])
+                    if i % 2 == 0:
+                        buttons.append([InlineKeyboardButton(label, url=short_link_url)])
+                    else:
+                        buttons[-1].append(InlineKeyboardButton(label, url=short_link_url))
 
                 caption = (f"**🎬 {title} Tamil HDRip**\n\n"
                            "**[ 360p☆480p☆HEVC☆720p☆1080p ]✌**\n\n"
