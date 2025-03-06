@@ -43,14 +43,20 @@ BATCH_FILES = {}
 
 
 def get_size(size):
-    """Get size in readable format"""
+    """Get size in readable format (rounded up for MB and above)"""
 
     units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
     size = float(size)
     i = 0
-    while size >= 1024.0 and i < len(units):
+
+    while size >= 1024.0 and i < len(units) - 1:
         i += 1
         size /= 1024.0
+
+    if i >= 2:  # Round up for MB and above (MB = index 2)
+        size = math.ceil(size)
+        return f"{size} {units[i]}"
+    
     return "%.2f %s" % (size, units[i])
 
 def formate_file_name(file_name):
@@ -493,7 +499,7 @@ async def handle_message(client, message):
                     file_id = str(forwarded_message.id)
 
                     size = get_size(message.document.file_size) if message.document else "Unknown"
-                    quality_match = re.search(r"(480p|720p|1080p|HEVC|HDRip)", message.caption or "", re.IGNORECASE)
+                    quality_match = re.search(r"(480p|720p|1080p|360p|720p|1080p - HEVC|7200p - HEVC)", message.caption or "", re.IGNORECASE)
                     quality = quality_match.group(1) if quality_match else None
 
                     await message.delete()
@@ -538,16 +544,16 @@ async def handle_message(client, message):
                     
                     file_links.append(label)
 
-                caption = (f"🎬 **𝙼𝚘𝚟𝚒𝚎 𝙽𝚊𝚖𝚎:** {title} Tamil HDRip\n\n"
+                caption = (f"🎬 **𝙼𝚘𝚟𝚒𝚎 𝙽𝚊𝚖𝚎:** {title} \n\n"
                            "📂 **𝙵𝚒𝚕𝚎 𝙻𝚒𝚗𝚔𝚜:**\n"
-                           "━━━━━━━━━━━━━━━━\n"
+                           "━━━━━━━━━━━━━━━━━━━━━━━━\n"
                            + "\n".join(file_links) +
-                           "\n━━━━━━━━━━━━━━━━\n\n"
+                           "\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
                            f"🎭 **𝙶𝚎𝚗𝚛𝚎:** {genre}\n"
                            f"⭐ **𝙸𝙼𝙳𝙱:** {imdb_rating}/10\n"
                            f"🗣 **𝙻𝚊𝚗𝚐𝚞𝚊𝚐𝚎:** {language}\n\n"
-                           "📢 **𝙽𝚘𝚝𝚎:** [How to Download?](HOW_TO_POST_SHORT)\n"
-                           "📌 **𝙼𝚘𝚟𝚒𝚎 𝙶𝚛𝚘𝚞𝚙:** @Roxy_Request_24_7\n"
+                           "📢 **𝙽𝚘𝚝𝚎:** [How to Download?]({HOW_TO_POST_SHORT})\n"
+                           "📌 **𝙼𝚘𝚟𝚒𝚎 𝙶𝚛𝚘𝚞𝚙:** [ Join ](https://t.me/+hjI3IucdWT01ZTA1)\n"
                            "❤️ **𝚂𝚑𝚊𝚛𝚎 & 𝙴𝚗𝚓𝚘𝚢!**")
 
                 if poster:
