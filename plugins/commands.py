@@ -552,24 +552,23 @@ async def handle_posting(client, message, states, inline_buttons):
                 for i, file_id in enumerate(states[chat_id]["file_ids"]):
                     long_url = f"https://t.me/{temp.U_NAME}?start={file_id}"
                     short_link_url = await short_link(long_url) or long_url
-                    quality = states[chat_id]['qualities'][i] or ""
+                    quality = states[chat_id]['qualities'][i] or "Unknown"
                     size = states[chat_id]['file_sizes'][i]
-                    label = f"{size} [ {quality} ]" if quality else size
 
                     if inline_buttons:
                         if i % 2 == 0:
-                            buttons.append([InlineKeyboardButton(label, url=short_link_url)])
+                            buttons.append([InlineKeyboardButton(f"{size} [ {quality} ]", url=short_link_url)])
                         else:
-                            buttons[-1].append(InlineKeyboardButton(label, url=short_link_url))
+                            buttons[-1].append(InlineKeyboardButton(f"{size} [ {quality} ]", url=short_link_url))
                     else:
-                        caption += f"》{size} : {short_link_url}\n\n"
+                        caption += f"📂 **{size}** | 🔗 [{quality}]({short_link_url})\n"
                 
                 keyboard = InlineKeyboardMarkup(buttons) if inline_buttons else None
                 
                 if poster:
-                    await message.reply_photo(poster, caption=caption, reply_markup=keyboard)
+                    await message.reply_photo(poster, caption=caption, reply_markup=keyboard, disable_web_page_preview=True)
                 else:
-                    await message.reply(caption, reply_markup=keyboard)
+                    await message.reply(caption, reply_markup=keyboard, disable_web_page_preview=True)
                 
                 await message.delete()
                 del states[chat_id]
