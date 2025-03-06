@@ -495,7 +495,7 @@ async def handle_message(client, message):
                     forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
                     file_id = str(forwarded_message.id)
 
-                    size = get_size(message.document.file_size) if message.document else "Unknown"
+                    size = await get_size(message.document.file_size) if message.document else "Unknown"
                     quality_match = re.search(r"(480p|720p|1080p|360p|720p|1080p - HEVC|7200p - HEVC)", message.caption or "", re.IGNORECASE)
                     quality = quality_match.group(1) if quality_match else None
 
