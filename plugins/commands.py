@@ -459,7 +459,7 @@ async def genpost_command(client, message):
         await message.reply(f"Error occurred: {e}")
 
 @Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("genpost"))
-async def handle_message(client, message):
+async def handle_genpost(client, message):
     try:
         chat_id = message.chat.id
         await delete_previous_reply(chat_id)
