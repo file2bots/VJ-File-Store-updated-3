@@ -439,12 +439,15 @@ from pyrogram.errors import ChatAdminRequired, FloodWait
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 
+# Separate states for /genpost and /post
 user_states = {}
+genpost_states = {}
+post_states = {}
 
-async def delete_previous_reply(chat_id):
-    if chat_id in user_states and "last_reply" in user_states[chat_id]:
+async def delete_previous_reply(chat_id, states):
+    if chat_id in states and "last_reply" in states[chat_id]:
         try:
-            await user_states[chat_id]["last_reply"].delete()
+            await states[chat_id]["last_reply"].delete()
         except Exception as e:
             print(f"Failed to delete message: {e}")
 
@@ -454,18 +457,35 @@ async def genpost_command(client, message):
         await message.reply("**Welcome to the Rare Movie Post Feature!**\n\n"
                             "👉🏻 Send the number of files you want to add.\n\n"
                             "‼️ *Note:* Only enter a number.", disable_web_page_preview=True)
-        user_states[message.chat.id] = {"state": "awaiting_num_files"}
+        genpost_states[message.chat.id] = {"state": "awaiting_num_files"}
+    except Exception as e:
+        await message.reply(f"Error occurred: {e}")
+
+@Client.on_message(filters.command("post") & filters.user(ADMINS))
+async def post_command(client, message):
+    try:
+        await message.reply("**Welcome to the Rare Movie Post Feature!**\n\n"
+                            "👉🏻 Send the number of files you want to add.\n\n"
+                            "‼️ *Note:* Only enter a number.", disable_web_page_preview=True)
+        post_states[message.chat.id] = {"state": "awaiting_num_files"}
     except Exception as e:
         await message.reply(f"Error occurred: {e}")
 
 @Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("genpost"))
 async def handle_genpost(client, message):
+    await handle_posting(client, message, genpost_states, inline_buttons=True)
+
+@Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("post"))
+async def handle_post(client, message):
+    await handle_posting(client, message, post_states, inline_buttons=False)
+
+async def handle_posting(client, message, states, inline_buttons):
     try:
         chat_id = message.chat.id
-        await delete_previous_reply(chat_id)
+        await delete_previous_reply(chat_id, states)
         
-        if chat_id in user_states:
-            current_state = user_states[chat_id]["state"]
+        if chat_id in states:
+            current_state = states[chat_id]["state"]
 
             if current_state == "awaiting_num_files":
                 try:
@@ -473,10 +493,10 @@ async def handle_genpost(client, message):
 
                     if num_files <= 0:
                         rply = await message.reply("⏩ Forward the file")
-                        user_states[chat_id]["last_reply"] = rply
+                        states[chat_id]["last_reply"] = rply
                         return
 
-                    user_states[chat_id] = {
+                    states[chat_id] = {
                         "state": "awaiting_files",
                         "num_files": num_files,
                         "files_received": 0,
@@ -486,8 +506,8 @@ async def handle_genpost(client, message):
                     }
 
                     reply_message = await message.reply("**⏩ Forward the No: 1 file**")
-                    user_states[chat_id]["last_reply"] = reply_message
-                        
+                    states[chat_id]["last_reply"] = reply_message
+
                 except ValueError:
                     await message.reply("Invalid input. Please enter a valid number.")
 
@@ -503,186 +523,57 @@ async def handle_genpost(client, message):
                     await message.delete()
 
                     encoded_file_id = base64.urlsafe_b64encode(f"file_{file_id}".encode("ascii")).decode().strip("=")
-                    user_states[chat_id]["file_ids"].append(encoded_file_id)
-                    user_states[chat_id]["file_sizes"].append(size)
-                    user_states[chat_id]["qualities"].append(quality)
+                    states[chat_id]["file_ids"].append(encoded_file_id)
+                    states[chat_id]["file_sizes"].append(size)
+                    states[chat_id]["qualities"].append(quality)
 
-                    user_states[chat_id]["files_received"] += 1
-                    files_received = user_states[chat_id]["files_received"]
-                    num_files_left = user_states[chat_id]["num_files"] - files_received
+                    states[chat_id]["files_received"] += 1
+                    files_received = states[chat_id]["files_received"]
+                    num_files_left = states[chat_id]["num_files"] - files_received
 
                     if num_files_left > 0:
                         reply_message = await message.reply(f"**⏩ Forward the No: {files_received + 1} File(s)**")
-                        user_states[chat_id]["last_reply"] = reply_message                     
+                        states[chat_id]["last_reply"] = reply_message                     
                     else:
                         reply_message = await message.reply("**Now send the movie name**\n\n"
                                                             "**Example: Lover 2024 Hindi WEB-DL**")                    
-                        user_states[chat_id]["state"] = "awaiting_title"
-                        user_states[chat_id]["last_reply"] = reply_message
-            
+                        states[chat_id]["state"] = "awaiting_title"
+                        states[chat_id]["last_reply"] = reply_message
+
             elif current_state == "awaiting_title":
                 title = message.text.strip()
-                title_clean = re.sub(r"[()\[\]{}:;'!]", "", title)
-                cleaned_title = clean_title(title_clean)
-            
+                cleaned_title = re.sub(r"[()\[\]{}:;'!]", "", title)
                 imdb_data = await get_poster(cleaned_title)
                 poster = imdb_data.get('poster') if imdb_data else None
-            
+                
                 buttons = []
-                for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
+                caption = f"**🎬 {title} Tamil HDRip**\n\n"
+
+                for i, file_id in enumerate(states[chat_id]["file_ids"]):
                     long_url = f"https://t.me/{temp.U_NAME}?start={file_id}"
                     short_link_url = await short_link(long_url) or long_url
-                    
-                    quality = user_states[chat_id]['qualities'][i] or ""
-                    size = user_states[chat_id]['file_sizes'][i]
+                    quality = states[chat_id]['qualities'][i] or ""
+                    size = states[chat_id]['file_sizes'][i]
                     label = f"{size} [ {quality} ]" if quality else size
 
-                    if i % 2 == 0:
-                        buttons.append([InlineKeyboardButton(label, url=short_link_url)])
+                    if inline_buttons:
+                        if i % 2 == 0:
+                            buttons.append([InlineKeyboardButton(label, url=short_link_url)])
+                        else:
+                            buttons[-1].append(InlineKeyboardButton(label, url=short_link_url))
                     else:
-                        buttons[-1].append(InlineKeyboardButton(label, url=short_link_url))
-
-                caption = (f"**🎬 {title} Tamil HDRip**\n\n"
-                           "**[ 360p☆480p☆HEVC☆720p☆1080p ]✌**\n\n"
-                           "**𓆩🔻𓆪 Direct Telegram Files 👇**\n\n"
-                           "**✅ Note : [How to Download]({HOW_TO_POST_SHORT}) 👀**\n\n"                  
-                           "**❤️‍🔥 Share with Friends ❤️‍🔥**")
-
-                keyboard = InlineKeyboardMarkup(buttons)
-
+                        caption += f"》{size} : {short_link_url}\n\n"
+                
+                keyboard = InlineKeyboardMarkup(buttons) if inline_buttons else None
+                
                 if poster:
                     await message.reply_photo(poster, caption=caption, reply_markup=keyboard)
                 else:
                     await message.reply(caption, reply_markup=keyboard)
-                    
-                await message.delete()
-                del user_states[chat_id]
-
-        else:
-            return
-    except Exception as e:
-        await message.reply(f"Error occurred: {e}")
-
-        
-#--------------------------Post Code with Caption And Poster-------------------------------#
-
-#--------------------------Post Code with Caption And Poster-------------------------------#
-
-@Client.on_message(filters.command("post") & filters.user(ADMINS))
-async def post_command(client, message):
-    try:
-        await message.reply("**Wᴇʟᴄᴏᴍᴇ Tᴏ Usᴇ Oᴜʀ Rᴀʀᴇ Mᴏᴠɪᴇ Pᴏsᴛ Fᴇᴀᴛᴜʀᴇ:) Cᴏᴅᴇ ʙʏ [Rᴏxʏ ʟɪɴᴋᴢᴢ](https://t.me/PKlinkzz_admin_bot) 👨‍💻**\n\n**👉🏻Sᴇɴᴅ ᴛʜᴇ ɴᴜᴍʙᴇʀ ᴏғ ғɪʟᴇs ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴀᴅᴅ👈🏻**\n\n**‼️ Nᴏᴛᴇ : Oɴʟʏ ɴᴜᴍʙᴇʀ**", disable_web_page_preview=True)
-        user_states[message.chat.id] = {"state": "awaiting_num_files"}
-    except Exception as e:
-        await message.reply(f"Error occurred: {e}")
-
-
-
-@Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("post"))
-async def handle_post(client, message):
-    try:
-        chat_id = message.chat.id
-        
-        await delete_previous_reply(chat_id)
-        
-        if chat_id in user_states:
-            current_state = user_states[chat_id]["state"]
-
-            if current_state == "awaiting_num_files":
-                try:
-                    num_files = int(message.text.strip())
-
-                    if num_files <= 0:
-                        rply = await message.reply("⏩ ғᴏʀᴡᴀʀᴅ ᴛʜᴇ ғɪʟᴇ")
-                        user_states[chat_id]["last_reply"] = rply
-                        return
-
-                    user_states[chat_id] = {
-                        "state": "awaiting_files",
-                        "num_files": num_files,
-                        "files_received": 0,
-                        "file_ids": [],
-                        "file_sizes": [],
-                        "stream_links": []
-                    }
-
-                    reply_message = await message.reply("**⏩ ғᴏʀᴡᴀʀᴅ ᴛʜᴇ ɴᴏ: 1 ғɪʟᴇ**")
-                    user_states[chat_id]["last_reply"] = reply_message
-                        
-                except ValueError:
-                    await message.reply("Invalid input. Please enter a valid number.")
-
-            elif current_state == "awaiting_files":
-                if message.media:
-                    file_type = message.media
-                    forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
-                    file_id = str(forwarded_message.id)  # Ensure correct file ID extraction
-            
-                    log_msg = await message.copy(chat_id=DIRECT_GEN_DB)
-                    stream_link = await gen_link(log_msg)
-            
-                    size = get_size(getattr(message, file_type.value).file_size)
-                    await message.delete()
-                else:
-                    forwarded_message = await message.forward(chat_id=DIRECT_GEN_DB)
-                    file_id = str(forwarded_message.id)
-            
-                # ✅ Correctly encode file ID
-                string = f"file_{file_id}"
-                encoded_file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-            
-                # Save file data
-                user_states[chat_id]["file_ids"].append(encoded_file_id)  # Store encoded ID
-                user_states[chat_id]["file_sizes"].append(size)
-                user_states[chat_id]["stream_links"].append(stream_link)
-            
-                user_states[chat_id]["files_received"] += 1
-                files_received = user_states[chat_id]["files_received"]
-                num_files_left = user_states[chat_id]["num_files"] - files_received
-            
-                if num_files_left > 0:
-                    reply_message = await message.reply(f"**⏩ Forward the No: {files_received + 1} File(s)**")
-                    user_states[chat_id]["last_reply"] = reply_message                     
-                else:
-                    reply_message = await message.reply("**Now send the movie name**\n\n**Example: Lover 2024 Hindi WEB-DL**")                    
-                    user_states[chat_id]["state"] = "awaiting_title"
-                    user_states[chat_id]["last_reply"] = reply_message
-            
-            elif current_state == "awaiting_title":
-                title = message.text.strip()
-                title_clean = re.sub(r"[()\[\]{}:;'!]", "", title)
-                cleaned_title = clean_title(title_clean)
-            
-                imdb_data = await get_poster(cleaned_title)
-                poster = imdb_data.get('poster') if imdb_data else None
-            
-                file_info = []
-                for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
-                    long_url = f"https://t.me/{temp.U_NAME}?start={file_id}"  # ✅ Use correctly encoded ID
-                    short_link_url = await short_link(long_url) or long_url  # ✅ Fallback to long URL
-                    file_info.append(f"》{user_states[chat_id]['file_sizes'][i]} : {short_link_url}")
-            
-                file_info_text = "\n\n".join(file_info)
-            
-                stream_links_info = []
-                for i, stream_link in enumerate(user_states[chat_id]["stream_links"]):
-                    if isinstance(stream_link, tuple):  # ✅ Fix duplicate link issue
-                        stream_link = stream_link[0]  # Pick only one valid URL
-                    short_stream_link_url = await short_link(stream_link) or stream_link
-                    stream_links_info.append(f"》{user_states[chat_id]['file_sizes'][i]} : {short_stream_link_url}")
                 
-                stream_links_text = "\n\n".join(stream_links_info)                
-                summary_message = f"**🎬{title} Tamil HDRip**\n\n**[ 𝟹𝟼𝟶ᴘ☆𝟺𝟾𝟶ᴘ☆Hᴇᴠᴄ☆𝟽𝟸𝟶ᴘ☆𝟷𝟶𝟾𝟶ᴘ ]✌**\n\n**𓆩🔻𓆪 Dɪʀᴇᴄᴛ Tᴇʟᴇɢʀᴀᴍ Fɪʟᴇs Oɴʟʏ👇**\n\n**{file_info_text}**\n\n**✅ Note : [Hᴏᴡ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ]({HOW_TO_POST_SHORT})👀**\n\n**𓆩🔻𓆪 Sᴛʀᴇᴀᴍ/Fᴀsᴛ ᴅᴏᴡɴʟᴏᴀᴅ 👇**\n\n**{stream_links_text}**\n\n**✅ Note : [Hᴏᴡ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ]({HOW_TO_POST_SHORT})👀**\n\n**Mᴏᴠɪᴇ Gʀᴏᴜᴘ 𝟸𝟺/𝟽 : @Roxy_Request_24_7**\n\n**❤️‍🔥ー𖤍 𓆩 sʜᴀʀᴇ ᴡɪᴛʜ ғʀɪᴇɴᴅs 𓆪 𖤍ー❤️‍🔥**"
-                summary_messages = f"{title_clean}, {cleaned_title}"
-                if poster:
-                    await message.reply_photo(poster, caption=summary_message)
-                else:
-                    await message.reply(summary_messages)
-                    
                 await message.delete()
-                del user_states[chat_id]
-
+                del states[chat_id]
         else:
             return
     except Exception as e:
-        await message.reply(f"Error occurred: {e}") 
+        await message.reply(f"Error occurred: {e}")
