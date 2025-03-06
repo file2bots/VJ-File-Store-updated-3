@@ -459,7 +459,7 @@ async def handle_message(client, message):
     try:
         chat_id = message.chat.id
         await delete_previous_reply(chat_id)
-        
+
         if chat_id in user_states:
             current_state = user_states[chat_id]["state"]
 
@@ -520,37 +520,40 @@ async def handle_message(client, message):
                 title = message.text.strip()
                 title_clean = re.sub(r"[()\[\]{}:;'!]", "", title)
                 cleaned_title = clean_title(title_clean)
-            
+
                 imdb_data = await get_poster(cleaned_title)
                 poster = imdb_data.get('poster') if imdb_data else None
-            
-                buttons = []
+                imdb_rating = imdb_data.get('rating', 'N/A')
+                genre = imdb_data.get('genre', 'N/A')
+                language = imdb_data.get('language', 'N/A')
+
+                file_links = []
                 for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
                     long_url = f"https://t.me/{temp.U_NAME}?start={file_id}"
                     short_link_url = await short_link(long_url) or long_url
-                    
+
                     quality = user_states[chat_id]['qualities'][i] or ""
                     size = user_states[chat_id]['file_sizes'][i]
-                    label = f"{size} [ {quality} ]" if quality else size
+                    label = f"🔹 {size} [ {quality} ] ➜ [Download]({short_link_url})" if quality else f"🔹 {size} ➜ [Download]({short_link_url})"
+                    
+                    file_links.append(label)
 
-                    if i % 2 == 0:
-                        buttons.append([InlineKeyboardButton(label, url=short_link_url)])
-                    else:
-                        buttons[-1].append(InlineKeyboardButton(label, url=short_link_url))
-
-                caption = (f"**🎬 {title} Tamil HDRip**\n\n"
-                           "**[ 360p☆480p☆HEVC☆720p☆1080p ]✌**\n\n"
-                           "**𓆩🔻𓆪 Direct Telegram Files 👇**\n\n"
-                           "**✅ Note : [How to Download]({HOW_TO_POST_SHORT}) 👀**\n\n"
-                           "**Movie Group 24/7 : @Roxy_Request_24_7**\n\n"
-                           "**❤️‍🔥 Share with Friends ❤️‍🔥**")
-
-                keyboard = InlineKeyboardMarkup(buttons)
+                caption = (f"🎬 **𝙼𝚘𝚟𝚒𝚎 𝙽𝚊𝚖𝚎:** {title} Tamil HDRip\n\n"
+                           "📂 **𝙵𝚒𝚕𝚎 𝙻𝚒𝚗𝚔𝚜:**\n"
+                           "━━━━━━━━━━━━━━━━\n"
+                           + "\n".join(file_links) +
+                           "\n━━━━━━━━━━━━━━━━\n\n"
+                           f"🎭 **𝙶𝚎𝚗𝚛𝚎:** {genre}\n"
+                           f"⭐ **𝙸𝙼𝙳𝙱:** {imdb_rating}/10\n"
+                           f"🗣 **𝙻𝚊𝚗𝚐𝚞𝚊𝚐𝚎:** {language}\n\n"
+                           "📢 **𝙽𝚘𝚝𝚎:** [How to Download?](HOW_TO_POST_SHORT)\n"
+                           "📌 **𝙼𝚘𝚟𝚒𝚎 𝙶𝚛𝚘𝚞𝚙:** @Roxy_Request_24_7\n"
+                           "❤️ **𝚂𝚑𝚊𝚛𝚎 & 𝙴𝚗𝚓𝚘𝚢!**")
 
                 if poster:
-                    await message.reply_photo(poster, caption=caption, reply_markup=keyboard)
+                    await message.reply_photo(poster, caption=caption)
                 else:
-                    await message.reply(caption, reply_markup=keyboard)
+                    await message.reply(caption)
                     
                 await message.delete()
                 del user_states[chat_id]
