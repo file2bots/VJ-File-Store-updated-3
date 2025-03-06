@@ -540,8 +540,9 @@ async def handle_message(client, message):
 
                     quality = user_states[chat_id]['qualities'][i] or ""
                     size = user_states[chat_id]['file_sizes'][i]
-                    label = f"🔹 {size} [ {quality} ] ➜ [Download]({short_link_url})" if quality else f"🔹 {size} ➜ [Download]({short_link_url})"
-                    
+                    #label = f"🔹 {size} [ {quality} ] ➜ [Download]({short_link_url})" if quality else f"🔹 {size} ➜ [Download]({short_link_url})"
+                    #label = f"🔹 {size} [ {quality} ] ➜ <a href='{short_link_url}'>Download</a>" if quality else f"🔹 {size} ➜ <a href='{short_link_url}'>Download</a>"
+                    label = f"🔹 {size} [ {quality} ] ➜ {short_link_url}" if quality else f"🔹 {size} ➜ {short_link_url}"
                     file_links.append(label)
 
                 caption = (f"🎬 **𝙼𝚘𝚟𝚒𝚎 𝙽𝚊𝚖𝚎:** {title} \n\n"
