@@ -43,17 +43,16 @@ BATCH_FILES = {}
 # Ask Doubt on telegram @KingVJ01
 
 
-async def get_size(file_size):
-    """Convert bytes to human-readable format."""
-    if file_size is None:
-        return "Unknown"
-    size_units = ["B", "KB", "MB", "GB", "TB"]
-    size = float(file_size)
-    unit_index = 0
-    while size >= 1024 and unit_index < len(size_units) - 1:
-        size /= 1024
-        unit_index += 1
-    return f"{size:.2f} {size_units[unit_index]}"
+def get_size(size):
+    """Get size in readable format"""
+
+    units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
+    size = float(size)
+    i = 0
+    while size >= 1024.0 and i < len(units):
+        i += 1
+        size /= 1024.0
+    return "%.2f %s" % (size, units[i])
 
 def formate_file_name(file_name):
     chars = ["[", "]", "(", ")"]
@@ -495,7 +494,7 @@ async def handle_message(client, message):
                     forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
                     file_id = str(forwarded_message.id)
 
-                    size = await get_size(message.document.file_size) if message.document else "Unknown"
+                    size = get_size(message.document.file_size) if message.document else "Unknown"
                     quality_match = re.search(r"(480p|720p|1080p|360p|720p|1080p - HEVC|7200p - HEVC)", message.caption or "", re.IGNORECASE)
                     quality = quality_match.group(1) if quality_match else None
 
@@ -548,7 +547,7 @@ async def handle_message(client, message):
                 caption = (f"🎬 **𝙼𝚘𝚟𝚒𝚎 𝙽𝚊𝚖𝚎:** {title} \n\n"
                            "📂 **𝙵𝚒𝚕𝚎 𝙻𝚒𝚗𝚔𝚜:**\n"
                            "━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                           + "\n".join(file_links) +
+                          + "\n\n".join(f"<b>{link}</b>" for link in file_links) +
                            "\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
                            f"🎭 **𝙶𝚎𝚗𝚛𝚎:** {genre}\n"
                            f"⭐ **𝙸𝙼𝙳𝙱:** {imdb_rating}/10\n"
