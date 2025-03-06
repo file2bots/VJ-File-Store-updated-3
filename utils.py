@@ -215,17 +215,20 @@ def list_to_str(k):
 #POST FEATURES 
 
 def humanbytes(size):
-    # https://stackoverflow.com/a/49361727/4723940
-    # 2**10 = 1024
+    """Convert bytes to a human-readable format, rounding up."""
+    
     if not size:
         return ""
+    
     power = 2**10
     n = 0
-    Dic_powerN = {0: ' ', 1: 'Ki', 2: 'Mi', 3: 'Gi', 4: 'Ti'}
-    while size > power:
+    Dic_powerN = {0: '', 1: 'Ki', 2: 'Mi', 3: 'Gi', 4: 'Ti'}
+    
+    while size > power and n < len(Dic_powerN) - 1:
         size /= power
         n += 1
-    return f"{str(round(size, 2))} {Dic_powerN[n]}B"
+    
+    return f"{math.ceil(size)} {Dic_powerN[n]}B"
 
 def get_media_from_message(message: "Message") :
     media_types = (
@@ -295,12 +298,14 @@ async def delete_previous_reply(chat_id):
             print(f"Failed to delete message: {e}")
 
 def get_size(size):
-    """Get size in readable format"""
-
+    """Get size in a human-readable format, rounded up."""
+    
     units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
     size = float(size)
     i = 0
-    while size >= 1024.0 and i < len(units):
+
+    while size >= 1024.0 and i < len(units) - 1:
         i += 1
         size /= 1024.0
-    return "%.2f %s" % (size, units[i])
+
+    return f"{math.ceil(size)} {units[i]}"
