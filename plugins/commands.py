@@ -439,7 +439,7 @@ from pyrogram.errors import ChatAdminRequired, FloodWait
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
- Separate states for /genpost and /post
+# Separate states for /genpost and /post
 user_states = {}
 post_states = {}
 
