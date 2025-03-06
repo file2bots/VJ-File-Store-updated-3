@@ -579,7 +579,7 @@ async def post_command(client, message):
 
 
 @Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("post"))
-async def handle_message(client, message):
+async def handle_post(client, message):
     try:
         chat_id = message.chat.id
         
