@@ -448,8 +448,8 @@ async def delete_previous_reply(chat_id):
         except Exception as e:
             print(f"Failed to delete message: {e}")
 
-@Client.on_message(filters.command("post") & filters.user(ADMINS))
-async def post_command(client, message):
+@Client.on_message(filters.command("genpost") & filters.user(ADMINS))
+async def genpost_command(client, message):
     try:
         await message.reply("**Welcome to the Rare Movie Post Feature!**\n\n"
                             "👉🏻 Send the number of files you want to add.\n\n"
@@ -458,7 +458,7 @@ async def post_command(client, message):
     except Exception as e:
         await message.reply(f"Error occurred: {e}")
 
-@Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("post"))
+@Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("genpost"))
 async def handle_message(client, message):
     try:
         chat_id = message.chat.id
