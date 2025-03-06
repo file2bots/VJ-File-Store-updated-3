@@ -437,10 +437,9 @@ from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong
 from database.ia_filterdb import unpack_new_file_id
 from pyrogram.errors import ChatAdminRequired, FloodWait
 from pyrogram import Client, filters
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
-# Separate states for /genpost and /post
-# Separate states for /genpost and /post
+ Separate states for /genpost and /post
 user_states = {}
 post_states = {}
 
@@ -473,6 +472,7 @@ async def handle_post_type(client, callback_query):
     if chat_id in post_states and post_states[chat_id]["state"] == "awaiting_post_type":
         post_type = callback_query.data
         inline_buttons = post_type == "post_inline"
+        await callback_query.answer()
         await callback_query.message.edit_text("**Send the number of files you want to add.**\n\n‼️ *Note:* Only enter a number.")
         post_states[chat_id] = {"state": "awaiting_num_files", "inline_buttons": inline_buttons}
 
