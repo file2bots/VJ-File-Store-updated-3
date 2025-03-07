@@ -18,7 +18,7 @@ from Script import script
 from plugins.dbusers import db
 from pyrogram import Client, filters, enums
 from plugins.users_api import get_user, update_user_info
-from pyrogram.errors import ChatAdminRequired, FloodWait, UserNotParticipant
+from pyrogram.errors import ChatAdminRequired, FloodWait, UserNotParticipant, InviteRequestSent
 from pyrogram.types import *
 
 # Lazy import to prevent circular dependency
@@ -38,8 +38,22 @@ logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
 #--------------------------force sub code--------------------------#
+async def get_invite_link(bot, chat_id):
+    """Get an invite link for a channel (username or export link)."""
+    try:
+        chat = await bot.get_chat(chat_id)
+        if chat.username:
+            return f"https://t.me/{chat.username}"
+        else:
+            return await bot.export_chat_invite_link(chat_id)
+    except ChatAdminRequired:
+        logger.warning(f"Bot is not admin in the channel: {chat_id}")
+    except Exception as e:
+        logger.error(f"Failed to get invite link for {chat_id}: {e}")
+    return None
+
 async def is_subscribed(bot, user_id, channels):
-    """Check if a user is subscribed to required channels."""
+    """Check if a user is subscribed to all required channels."""
     btn = []
     for channel_id in channels:
         try:
@@ -47,9 +61,9 @@ async def is_subscribed(bot, user_id, channels):
             if member.status not in ["member", "administrator", "creator"]:
                 raise UserNotParticipant
         except UserNotParticipant:
-            chat = await bot.get_chat(channel_id)
-            invite_link = chat.invite_link or f"https://t.me/{chat.username}" if chat.username else None
+            invite_link = await get_invite_link(bot, channel_id)
             if invite_link:
+                chat = await bot.get_chat(channel_id)
                 btn.append([InlineKeyboardButton(f"Join {chat.title}", url=invite_link)])
         except ChatAdminRequired:
             logger.warning(f"Bot is not admin in the channel: {channel_id}")
@@ -85,8 +99,16 @@ def formate_file_name(file_name):
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
-    if AUTH_CHANNEL:
-        btn = await is_subscribed(client, user_id, AUTH_CHANNEL)
+    user_id = message.from_user.id
+    mention = message.from_user.mention
+    username = (await client.get_me()).username
+
+    # Ensure AUTH_CHANNEL is a list
+    auth_channels = [AUTH_CHANNEL] if isinstance(AUTH_CHANNEL, (str, int)) else AUTH_CHANNEL
+
+    # Force subscription check
+    if auth_channels:
+        btn = await is_subscribed(client, user_id, auth_channels)
         if btn:
             start_param = message.command[1] if len(message.command) > 1 else "true"
             btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start={start_param}")])
@@ -95,6 +117,7 @@ async def start(client, message):
                 reply_markup=InlineKeyboardMarkup(btn)
             )
             return
+            
     username = client.me.username
     if not await db.is_user_exist(message.from_user.id):
         await db.add_user(message.from_user.id, message.from_user.first_name)
