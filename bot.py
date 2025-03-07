@@ -30,6 +30,7 @@ from pyrogram import idle
 from CloudXbotz.bot import StreamBot
 from CloudXbotz.utils.keepalive import ping_server
 from CloudXbotz.bot.clients import initialize_clients
+from plugins import genlink #
 
 ppath = "plugins/*.py"
 files = glob.glob(ppath)
