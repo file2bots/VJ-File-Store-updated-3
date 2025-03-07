@@ -493,6 +493,15 @@ async def handle_message(client, message):
                 if message.media:
                     forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
                     file_id = str(forwarded_message.id)
+                
+                    if message.document:
+                        size = get_size(message.document.file_size)
+                    elif message.video:
+                        size = get_size(message.video.file_size)
+                    elif message.audio:
+                        size = get_size(message.audio.file_size)
+                    else:
+                        size = "Unknown"
 
                     size = get_size(getattr(message, file_type.value).file_size)
                     quality_match = re.search(r"(480p|720p|1080p|360p|720p|1080p - HEVC|7200p - HEVC)", message.caption or "", re.IGNORECASE)
