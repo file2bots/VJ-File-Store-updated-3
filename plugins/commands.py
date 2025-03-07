@@ -37,6 +37,10 @@ from CloudXbotz.utils.file_properties import get_name, get_hash, get_media_file_
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
+
+FORCESUB_IMG = [
+    "https://envs.sh/qny.jpg"
+]
 #--------------------------force sub code--------------------------#
 async def get_invite_link(bot, chat_id):
     """Get an invite link for a channel (username or export link)."""
