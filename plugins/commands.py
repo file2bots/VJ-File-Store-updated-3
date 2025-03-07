@@ -536,9 +536,9 @@ async def handle_message(client, message):
                 poster = imdb_data.get('poster') if imdb_data else None
             
                 # Creating formatted text-based links with bold
-                caption = f"**🎬 {title} Tamil HDRip**\n\n" \
-                          "**[ 360p☆480p☆HEVC☆720p☆1080p ]✌**\n\n" \
-                          "𓆩🔻𓆪 **Direct Telegram Files 👇**\n\n"
+                caption = f"🎬 <b>{title} Tamil HDRip</b>\n\n" \
+                          "📀 <b>❤️‍🔥 ᴜᴘʟᴏᴀᴅᴇᴅ ʙʏ - <a href='https://t.me/Tamilmobx'>@Tamilmobx</a></b>\n\n" 
+                          "<b>⚡ ᴅɪʀᴇᴄᴛ ғɪʟᴇs / ꜰᴀꜱᴛ ʟɪɴᴋ 🚀</b>\n\n"
 
                 for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
                     long_url = f"https://t.me/{temp.U_NAME}?start={file_id}"
@@ -547,13 +547,15 @@ async def handle_message(client, message):
                     quality = user_states[chat_id]['qualities'][i] or "Unknown"
                     size = user_states[chat_id]['file_sizes'][i]
                     
-                    #caption += f"✨ **{size} [{quality}]** - [**Generated Link**]({short_link_url})\n"
-                    caption += f"✨ **{size} {quality}** - [**Generated Link**]({short_link_url})\n"
+                    #caption += f"🗳 **{size} [{quality}]** - [**Generated Link**]({short_link_url})\n"
+                    #caption += f"🗳 **{size} {quality}** - [**Generated Link**]({short_link_url})\n"
+                    caption += f"🗳 <b>{size} {quality} ➜ <a href='{short_link_url}'>📥 𝗙𝗔𝗦𝗧 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗</a></b>\n\n"
 
-
-                caption += "\n✅ **Note : [How to Download]({HOW_TO_POST_SHORT}) 👀**\n" \
-                           "🎬 **Movie Group 24/7 : @Roxy_Request_24_7**\n\n" \
-                           "❤️‍🔥 **Share with Friends ❤️‍🔥**"
+                caption += (
+                    "📝 <b>🛠 Dᴏᴡɴʟᴏᴀᴅ Gᴜɪᴅᴇ : <a href='{HOW_TO_POST_SHORT}'>📖 Cʟɪᴄᴋ Hᴇʀᴇ 𓆪</a> 👀</b>\n\n"
+                    "🎬 <b>🍿 𓆩 Mᴏᴠɪᴇ Rᴇǫ 𝟸𝟺x𝟽 ☛ : <a href='https://t.me/+6QFNHZzurnFjY2Jl'>📢 Cʟɪᴄᴋ Hᴇʀᴇ</a> 🔥</b>\n\n"
+                    "⚡ <b>ー♡꘎ 𓆩 Sʜᴀʀᴇ Wɪᴛʜ Fʀɪᴇɴᴅs 𓆪꘎♡ー</b>"
+                )
 
                 if poster:
                     await message.reply_photo(poster, caption=caption)
