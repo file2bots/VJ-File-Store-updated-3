@@ -8,6 +8,7 @@ import os
 import json
 import base64
 from utils import get_poster #
+from plugins import genlink  # Ensure genlink is imported
 
 
 async def allowed(_, __, message):
