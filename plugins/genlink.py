@@ -7,6 +7,8 @@ import re
 import os
 import json
 import base64
+from utils import get_poster #
+
 
 async def allowed(_, __, message):
     if PUBLIC_FILE_STORE:
@@ -146,4 +148,59 @@ async def gen_link_batch(bot, message):
     else:
         await sts.edit(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\nContains `{og_msg}` files.\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
         
+#--------------------------Genlink------------------------------#
+async def allowed(_, __, message):
+    if PUBLIC_FILE_STORE:
+        return True
+    if message.from_user and message.from_user.id in ADMINS:
+        return True
+    return False
+
+@Client.on_message(filters.command("genlink") & filters.private & filters.create(allowed))
+async def generate_link(bot, message):
+    await message.reply_text("Enter your movie title:")
+    response = await bot.listen(message.chat.id)
+    title = response.text
+
+    # Fetch IMDb details
+    imdb_data = await get_poster(title)
+    if not imdb_data:
+        await message.reply_text("IMDb details not found.")
+        return
+
+    # Extract IMDb details
+    poster = imdb_data.get("poster")
+    year = imdb_data.get("year", "N/A")
+    rating = imdb_data.get("rating", "N/A")
+    plot = imdb_data.get("plot", "N/A")
+    language = imdb_data.get("language", "N/A")
+    quality = imdb_data.get("quality", "N/A")
+
+    # Search for files in the log channel
+    files = []
+    async for msg in bot.search_messages(LOG_CHANNEL, query=title, filter=enums.MessagesFilter.VIDEO):
+        if msg.document or msg.video:
+            file_name = msg.document.file_name if msg.document else msg.video.file_name
+            file_id = msg.document.file_id if msg.document else msg.video.file_id
+            files.append((file_name, file_id))
+
+    if not files:
+        await message.reply_text("No files found for this title.")
+        return
+
+    file_links = "\n".join([f"➡️ [{file[0]}](t.me/yourbot?start={file[1]})" for file in files])
+    caption = f"""
+🎬 **{title} ({year})**  
+⭐ **IMDb:** {rating}/10  
+📖 **Plot:** {plot}  
+🌍 **Language:** {language}  
+🎥 **Quality:** {quality}  
+
+📂 **Files:**
+{file_links}
+    """
+    await message.reply_photo(photo=poster, caption=caption, parse_mode=enums.ParseMode.MARKDOWN)
+
+
+
 
