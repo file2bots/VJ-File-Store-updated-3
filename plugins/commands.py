@@ -504,7 +504,7 @@ async def handle_message(client, message):
                     file_id = str(forwarded_message.id)
 
                     size = get_size(message.document.file_size) if message.document else "Unknown"
-                    quality_match = re.search(r"(480p|720p|1080p|HEVC|HDRip)", message.caption or "", re.IGNORECASE)
+                    quality_match = re.search(r"(480p|720p|1080p|HEVC|4K)", message.caption or "", re.IGNORECASE)
                     quality = quality_match.group(1) if quality_match else None
 
                     await message.delete()
@@ -541,7 +541,10 @@ async def handle_message(client, message):
                           "<b>⚡ ᴅɪʀᴇᴄᴛ ғɪʟᴇs / ꜰᴀꜱᴛ ʟɪɴᴋ 🚀</b>\n\n"
 
                 for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
-                    long_url = f"https://t.me/{temp.U_NAME}?start={file_id}"
+                    if WEBSITE_URL_MODE == True:
+                        long_url = f"{WEBSITE_URL}?start={file_id}"
+                    else:
+                        long_url = f"https://t.me/{temp.U_NAME}?start={file_id}"
                     short_link_url = await short_link(long_url) or long_url
 
                     quality = user_states[chat_id]['qualities'][i] or "Unknown"
