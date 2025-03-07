@@ -540,7 +540,9 @@ async def handle_message(client, message):
                     quality = user_states[chat_id]['qualities'][i] or "Unknown"
                     size = user_states[chat_id]['file_sizes'][i]
                     
-                    caption += f"✨ **{size} [{quality}]** - [**Generated Link**]({short_link_url})\n"
+                    #caption += f"✨ **{size} [{quality}]** - [**Generated Link**]({short_link_url})\n"
+                    caption += f"✨ **{size} {quality}** - [**Generated Link**]({short_link_url})\n"
+
 
                 caption += "\n✅ **Note : [How to Download]({HOW_TO_POST_SHORT}) 👀**\n" \
                            "🎬 **Movie Group 24/7 : @Roxy_Request_24_7**\n\n" \
