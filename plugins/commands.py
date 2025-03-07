@@ -99,6 +99,7 @@ def formate_file_name(file_name):
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
+    async def start(client, message):
     user_id = message.from_user.id
     mention = message.from_user.mention
     username = (await client.get_me()).username
@@ -106,20 +107,24 @@ async def start(client, message):
     # Ensure AUTH_CHANNEL is a list
     auth_channels = [AUTH_CHANNEL] if isinstance(AUTH_CHANNEL, (str, int)) else AUTH_CHANNEL
 
-    # Force subscription check
+    # ✅ Force Subscription Check
     if AUTH_CHANNEL:
         try:
-            btn = await is_subscribed(client, message, AUTH_CHANNEL)
+            btn = await is_subscribed(client, user_id, auth_channels)  # Fixed incorrect argument
             if btn:
-                username = (await client.get_me()).username
-                if message.command[1]:
-                    btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start={message.command[1]}")])
-                else:
-                    btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
-                await message.reply_text(text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the channel then click on try again button. 😇</b>", reply_markup=InlineKeyboardMarkup(btn))
+                try_again_button = f"https://t.me/{username}?start={message.command[1]}" if len(message.command) > 1 else f"https://t.me/{username}?start=true"
+                btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=try_again_button)])
+                
+                await message.reply_text(
+                    text=f"<b>👋 Hello {mention},\n\nPlease join the channel then click on Try Again. 😇</b>",
+                    reply_markup=InlineKeyboardMarkup(btn)
+                )
                 return
         except Exception as e:
-            print(e)
+            logger.error(f"Subscription check failed: {e}")
+
+    # ✅ If user is subscribed, proceed normally
+    await message.reply_text(f"Welcome, {mention}! You have successfully started the bot.")
             
     username = client.me.username
     if not await db.is_user_exist(message.from_user.id):
