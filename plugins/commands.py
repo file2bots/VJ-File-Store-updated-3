@@ -37,23 +37,27 @@ from CloudXbotz.utils.file_properties import get_name, get_hash, get_media_file_
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
-async def is_subscribed(bot, query, channel):
+#--------------------------force sub code--------------------------#
+async def is_subscribed(bot, user_id, channels):
+    """Check if a user is subscribed to required channels."""
     btn = []
-    for id in channel:
-        chat = await bot.get_chat(int(id))
+    for channel_id in channels:
         try:
-            await bot.get_chat_member(id, query.from_user.id)
+            member = await bot.get_chat_member(channel_id, user_id)
+            if member.status not in ["member", "administrator", "creator"]:
+                raise UserNotParticipant
         except UserNotParticipant:
-            btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
+            chat = await bot.get_chat(channel_id)
+            invite_link = chat.invite_link or f"https://t.me/{chat.username}" if chat.username else None
+            if invite_link:
+                btn.append([InlineKeyboardButton(f"Join {chat.title}", url=invite_link)])
+        except ChatAdminRequired:
+            logger.warning(f"Bot is not admin in the channel: {channel_id}")
         except Exception as e:
-            pass
+            logger.error(f"Error checking subscription for {channel_id}: {e}")
+
     return btn
-
-# Don't Remove Credit Tg - @VJ_Botz
-# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
-# Ask Doubt on telegram @KingVJ01
-
-
+#--------------------------force sub code--------------------------#
 def get_size(size):
     """Get size in readable format:
        - Round up to a whole number for MB and below
@@ -79,26 +83,18 @@ def formate_file_name(file_name):
     file_name = '@VJ_Botz ' + ' '.join(filter(lambda x: not x.startswith('http') and not x.startswith('@') and not x.startswith('www.'), file_name.split()))
     return file_name
 
-# Don't Remove Credit Tg - @VJ_Botz
-# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
-# Ask Doubt on telegram @KingVJ0
-
-
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     if AUTH_CHANNEL:
-        try:
-            btn = await is_subscribed(client, message, AUTH_CHANNEL)
-            if btn:
-                username = (await client.get_me()).username
-                if message.command[1]:
-                    btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start={message.command[1]}")])
-                else:
-                    btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
-                await message.reply_text(text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the channel then click on try again button. 😇</b>", reply_markup=InlineKeyboardMarkup(btn))
-                return
-        except Exception as e:
-            print(e)
+        btn = await is_subscribed(client, user_id, AUTH_CHANNEL)
+        if btn:
+            start_param = message.command[1] if len(message.command) > 1 else "true"
+            btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start={start_param}")])
+            await message.reply_text(
+                f"👋 Hello {mention},\n\nPlease join the required channels and click **Try Again**.",
+                reply_markup=InlineKeyboardMarkup(btn)
+            )
+            return
     username = client.me.username
     if not await db.is_user_exist(message.from_user.id):
         await db.add_user(message.from_user.id, message.from_user.first_name)
