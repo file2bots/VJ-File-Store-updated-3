@@ -536,9 +536,11 @@ async def handle_message(client, message):
                 poster = imdb_data.get('poster') if imdb_data else None
             
                 # Creating formatted text-based links with bold
-                caption = f"🎬 <b>{title} Tamil HDRip</b>\n\n" 
-                          "📀 <b>❤️‍🔥 Uᴘʟᴏᴀᴅᴇᴅ ʙʏ - [<a href='https://t.me/Tamilmobx'>Tamilmobx</a>]</b>\n\n" 
-                          "<b>⚡ ᴅɪʀᴇᴄᴛ ғɪʟᴇs / ꜰᴀꜱᴛ ʟɪɴᴋ 🚀</b>\n\n"
+                caption = (
+                    f"🎬 <b>{title} Tamil HDRip</b>\n\n"
+                    "📀 <b>❤️‍🔥 ᴜᴘʟᴏᴀᴅᴇᴅ ʙʏ - <a href='https://t.me/Tamilmobx'>@Tamilmobx</a></b>\n\n"
+                    "<b>⚡ ᴅɪʀᴇᴄᴛ ғɪʟᴇs / ꜰᴀꜱᴛ ʟɪɴᴋ 🚀</b>\n\n"
+                )
 
                 for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
                     if WEBSITE_URL_MODE == True:
