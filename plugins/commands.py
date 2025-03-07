@@ -425,21 +425,21 @@ async def cb_handler(client: Client, query: CallbackQuery):
         
 #----------------------------Post Code With Inlinebutton,Caption And Poster---------------------#
 
+#poster make features developer - Ansh Vachhani
+
 import re
-import traceback
-import os
 import logging
 import base64
 from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong
 from database.ia_filterdb import unpack_new_file_id
 from pyrogram.errors import ChatAdminRequired, FloodWait
 from pyrogram import Client, filters
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import Message
 
-# User states dictionary
 user_states = {}
 
 async def delete_previous_reply(chat_id):
+    """Deletes the last reply message sent by the bot."""
     if chat_id in user_states and "last_reply" in user_states[chat_id]:
         try:
             await user_states[chat_id]["last_reply"].delete()
@@ -448,6 +448,7 @@ async def delete_previous_reply(chat_id):
 
 @Client.on_message(filters.command("post") & filters.user(ADMINS))
 async def post_command(client, message):
+    """Starts the movie posting process."""
     try:
         await message.reply("**Welcome to the Rare Movie Post Feature!**\n\n"
                             "👉🏻 Send the number of files you want to add.\n\n"
@@ -458,10 +459,11 @@ async def post_command(client, message):
 
 @Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("post"))
 async def handle_message(client, message):
+    """Handles user messages during the posting process."""
     try:
         chat_id = message.chat.id
         await delete_previous_reply(chat_id)
-
+        
         if chat_id in user_states:
             current_state = user_states[chat_id]["state"]
 
@@ -493,30 +495,15 @@ async def handle_message(client, message):
                 if message.media:
                     forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
                     file_id = str(forwarded_message.id)
-                
-                    if message.document:
-                        size = get_size(message.document.file_size)
-                    elif message.video:
-                        size = get_size(message.video.file_size)
-                    elif message.audio:
-                        size = get_size(message.audio.file_size)
-                    else:
-                        size = "Unknown"
 
-                    size = get_size(getattr(message, file_type.value).file_size)
-                    quality_match = re.search(r"(480p|720p|1080p|360p|720p|1080p - HEVC|7200p - HEVC)", message.caption or "", re.IGNORECASE)
+                    size = get_size(message.document.file_size) if message.document else "Unknown"
+                    quality_match = re.search(r"(480p|720p|1080p|HEVC|HDRip)", message.caption or "", re.IGNORECASE)
                     quality = quality_match.group(1) if quality_match else None
 
                     await message.delete()
 
-                    # Generate file link based on WEBSITE_URL_MODE
-                    if WEBSITE_URL_MODE:
-                        long_url = f"{WEBSITE_URL}={file_id}"
-                    else:
-                        encoded_file_id = base64.urlsafe_b64encode(f"file_{file_id}".encode("ascii")).decode().strip("=")
-                        long_url = f"https://t.me/{BOT_USERNAME}?start={encoded_file_id}"
-
-                    user_states[chat_id]["file_ids"].append(long_url)
+                    encoded_file_id = base64.urlsafe_b64encode(f"file_{file_id}".encode("ascii")).decode().strip("=")
+                    user_states[chat_id]["file_ids"].append(encoded_file_id)
                     user_states[chat_id]["file_sizes"].append(size)
                     user_states[chat_id]["qualities"].append(quality)
 
@@ -537,33 +524,27 @@ async def handle_message(client, message):
                 title = message.text.strip()
                 title_clean = re.sub(r"[()\[\]{}:;'!]", "", title)
                 cleaned_title = clean_title(title_clean)
-
+            
                 imdb_data = await get_poster(cleaned_title)
                 poster = imdb_data.get('poster') if imdb_data else None
-                imdb_rating = imdb_data.get('rating', 'N/A')
-                genre = imdb_data.get('genre', 'N/A')
-                language = imdb_data.get('language', 'N/A')
+            
+                # Creating formatted text-based links with bold
+                caption = f"**🎬 {title} Tamil HDRip**\n\n" \
+                          "**[ 360p☆480p☆HEVC☆720p☆1080p ]✌**\n\n" \
+                          "𓆩🔻𓆪 **Direct Telegram Files 👇**\n\n"
 
-                file_links = []
-                for i in range(len(user_states[chat_id]["file_ids"])):
-                    short_link_url = await short_link(user_states[chat_id]["file_ids"][i]) or user_states[chat_id]["file_ids"][i]
+                for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
+                    long_url = f"https://t.me/{temp.U_NAME}?start={file_id}"
+                    short_link_url = await short_link(long_url) or long_url
 
-                    quality = user_states[chat_id]['qualities'][i] or ""
+                    quality = user_states[chat_id]['qualities'][i] or "Unknown"
                     size = user_states[chat_id]['file_sizes'][i]
-                    label = f"🔹 {size} [ {quality} ] ➜ {short_link_url}" if quality else f"🔹 {size} ➜ {short_link_url}"
-                    file_links.append(label)
+                    
+                    caption += f"✨ **{size} [{quality}]** - [**Generated Link**]({short_link_url})\n"
 
-                caption = (f"🎬 **𝙼𝚘𝚟𝚒𝚎 𝙽𝚊𝚖𝚎:** {title} \n\n"
-                           "📂 **𝙵𝚒𝚕𝚎 𝙻𝚒𝚗𝚔𝚜:**\n"
-                           "━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                          + "\n\n".join(f"<b>{link}</b>" for link in file_links) +
-                           "\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                           f"🎭 **𝙶𝚎𝚗𝚛𝚎:** {genre}\n"
-                           f"⭐ **𝙸𝙼𝙳𝙱:** {imdb_rating}/10\n"
-                           f"🗣 **𝙻𝚊𝚗𝚐𝚞𝚊𝚐𝚎:** {language}\n\n"
-                           "📢 **𝙽𝚘𝚝𝚎:** [How to Download?]({HOW_TO_POST_SHORT})\n"
-                           "📌 **𝙼𝚘𝚟𝚒𝚎 𝙶𝚛𝚘𝚞𝚙:** [ Join ](https://t.me/+hjI3IucdWT01ZTA1)\n"
-                           "❤️ **𝚂𝚑𝚊𝚛𝚎 & 𝙴𝚗𝚓𝚘𝚢!**")
+                caption += "\n✅ **Note : [How to Download]({HOW_TO_POST_SHORT}) 👀**\n" \
+                           "🎬 **Movie Group 24/7 : @Roxy_Request_24_7**\n\n" \
+                           "❤️‍🔥 **Share with Friends ❤️‍🔥**"
 
                 if poster:
                     await message.reply_photo(poster, caption=caption)
