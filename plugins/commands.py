@@ -109,7 +109,7 @@ async def start(client, message):
                 else:
                     btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
                 #await message.reply_text(text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the channel then click on try again button. 😇</b>", reply_markup=InlineKeyboardMarkup(btn))
-                await client.send_photo(
+                await message.reply_photo(
                     chat_id=message.from_user.id,
                     photo=random.FORCESUB_IMG,
                     caption=script.FORCESUB_TEXT.format(message.from_user.mention, me.mention),
