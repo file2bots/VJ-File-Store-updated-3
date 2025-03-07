@@ -107,16 +107,19 @@ async def start(client, message):
     auth_channels = [AUTH_CHANNEL] if isinstance(AUTH_CHANNEL, (str, int)) else AUTH_CHANNEL
 
     # Force subscription check
-    if auth_channels:
-        btn = await is_subscribed(client, user_id, auth_channels)
-        if btn:
-            start_param = message.command[1] if len(message.command) > 1 else "true"
-            btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start={start_param}")])
-            await message.reply_text(
-                f"👋 Hello {mention},\n\nPlease join the required channels and click **Try Again**.",
-                reply_markup=InlineKeyboardMarkup(btn)
-            )
-            return
+    if AUTH_CHANNEL:
+        try:
+            btn = await is_subscribed(client, message, AUTH_CHANNEL)
+            if btn:
+                username = (await client.get_me()).username
+                if message.command[1]:
+                    btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start={message.command[1]}")])
+                else:
+                    btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
+                await message.reply_text(text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the channel then click on try again button. 😇</b>", reply_markup=InlineKeyboardMarkup(btn))
+                return
+        except Exception as e:
+            print(e)
             
     username = client.me.username
     if not await db.is_user_exist(message.from_user.id):
