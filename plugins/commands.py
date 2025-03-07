@@ -52,24 +52,16 @@ async def get_invite_link(bot, chat_id):
         logger.error(f"Failed to get invite link for {chat_id}: {e}")
     return None
 
-async def is_subscribed(bot, user_id, channels):
-    """Check if a user is subscribed to all required channels."""
+async def is_subscribed(bot, query, channel):
     btn = []
-    for channel_id in channels:
+    for id in channel:
+        chat = await bot.get_chat(int(id))
         try:
-            member = await bot.get_chat_member(channel_id, user_id)
-            if member.status not in ["member", "administrator", "creator"]:
-                raise UserNotParticipant
+            await bot.get_chat_member(id, query.from_user.id)
         except UserNotParticipant:
-            invite_link = await get_invite_link(bot, channel_id)
-            if invite_link:
-                chat = await bot.get_chat(channel_id)
-                btn.append([InlineKeyboardButton(f"Join {chat.title}", url=invite_link)])
-        except ChatAdminRequired:
-            logger.warning(f"Bot is not admin in the channel: {channel_id}")
+            btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
         except Exception as e:
-            logger.error(f"Error checking subscription for {channel_id}: {e}")
-
+            pass
     return btn
 #--------------------------force sub code--------------------------#
 def get_size(size):
@@ -109,21 +101,17 @@ async def start(client, message):
     # ✅ Force Subscription Check
     if AUTH_CHANNEL:
         try:
-            btn = await is_subscribed(client, user_id, auth_channels)  # Fixed incorrect argument
+            btn = await is_subscribed(client, message, AUTH_CHANNEL)
             if btn:
-                try_again_button = f"https://t.me/{username}?start={message.command[1]}" if len(message.command) > 1 else f"https://t.me/{username}?start=true"
-                btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=try_again_button)])
-                
-                await message.reply_text(
-                    text=f"<b>👋 Hello {mention},\n\nPlease join the channel then click on Try Again. 😇</b>",
-                    reply_markup=InlineKeyboardMarkup(btn)
-                )
+                username = (await client.get_me()).username
+                if message.command[1]:
+                    btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start={message.command[1]}")])
+                else:
+                    btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
+                await message.reply_text(text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the channel then click on try again button. 😇</b>", reply_markup=InlineKeyboardMarkup(btn))
                 return
         except Exception as e:
-            logger.error(f"Subscription check failed: {e}")
-
-    # ✅ If user is subscribed, proceed normally
-    await message.reply_text(f"Welcome, {mention}! You have successfully started the bot.")
+            print(e)
             
     username = client.me.username
     if not await db.is_user_exist(message.from_user.id):
