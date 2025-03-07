@@ -99,7 +99,6 @@ def formate_file_name(file_name):
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
-    async def start(client, message):
     user_id = message.from_user.id
     mention = message.from_user.mention
     username = (await client.get_me()).username
