@@ -597,7 +597,7 @@ async def handle_message(client, message):
                     
                     #caption += f"🗳 **{size} [{quality}]** - [**Generated Link**]({short_link_url})\n"
                     #caption += f"🗳 **{size} {quality}** - [**Generated Link**]({short_link_url})\n"
-                    caption += f"🗳 <b>{size} {quality} ➜ <a href='{short_link_url}'>📥 𝗙𝗔𝗦𝗧 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗</a></b>\n\n"
+                    caption += f"🗳 <b>{size} [ {quality} ] ➜ <a href='{short_link_url}'>📥 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗</a></b>\n\n"
 
                 caption += (
                     "📝 <b>🛠 Dᴏᴡɴʟᴏᴀᴅ Gᴜɪᴅᴇ : <a href='{HOW_TO_POST_SHORT}'>📖 Cʟɪᴄᴋ Hᴇʀᴇ 𓆪</a> 👀</b>\n\n"
