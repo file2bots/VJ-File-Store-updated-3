@@ -6,7 +6,6 @@ import os
 import logging
 import random
 import asyncio
-import logging  # Ensure logging is imported
 import re
 import json
 import base64
@@ -38,9 +37,6 @@ logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
 
-FORCESUB_IMG = [
-    "https://envs.sh/qny.jpg"
-]
 #--------------------------force sub code--------------------------#
 async def get_invite_link(bot, chat_id):
     """Get an invite link for a channel (username or export link)."""
