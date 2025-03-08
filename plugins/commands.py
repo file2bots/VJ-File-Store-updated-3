@@ -616,112 +616,21 @@ import re
 import base64
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from config import TARGET_CHANNELS, ADMINS, DIRECT_GEN_DB
+from config import TARGET_CHANNELS, ADMINS, DIRECT_GEN_DB, HOW_TO_POST_SHORT, WEBSITE_URL, WEBSITE_URL_MODE
 from utils import gen_link, get_size, short_link, clean_title, get_poster
 
-# Store user states
-user_states = {}
+user_states = {}  # Store user states during posting process
 
-async def delete_previous_reply(chat_id):
-    """Deletes the last reply message sent by the bot."""
-    if chat_id in user_states and "last_reply" in user_states[chat_id]:
-        try:
-            await user_states[chat_id]["last_reply"].delete()
-        except Exception as e:
-            print(f"Failed to delete message: {e}")
-
+# Command: /post - Starts the movie posting process
 @Client.on_message(filters.command("post") & filters.user(ADMINS))
 async def post_command(client, message):
     """Starts the movie posting process."""
-    try:
-        await message.reply("**🎬 Welcome to Movie Post Feature!**\n\n"
-                            "👉🏻 Send the number of files you want to add.\n\n"
-                            "‼️ *Note:* Only enter a number.", disable_web_page_preview=True)
-        user_states[message.chat.id] = {"state": "awaiting_num_files"}
-    except Exception as e:
-        await message.reply(f"Error occurred: {e}")
+    await send_channel_selection(message)
 
-@Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("post"))
-async def handle_message(client, message):
-    """Handles user messages during the posting process."""
-    try:
-        chat_id = message.chat.id
-        await delete_previous_reply(chat_id)
-        
-        if chat_id in user_states:
-            current_state = user_states[chat_id]["state"]
-
-            if current_state == "awaiting_num_files":
-                try:
-                    num_files = int(message.text.strip())
-
-                    if num_files <= 0:
-                        rply = await message.reply("⏩ Forward the file")
-                        user_states[chat_id]["last_reply"] = rply
-                        return
-
-                    user_states[chat_id] = {
-                        "state": "awaiting_files",
-                        "num_files": num_files,
-                        "files_received": 0,
-                        "file_ids": [],
-                        "file_sizes": [],
-                        "qualities": []
-                    }
-
-                    reply_message = await message.reply("**⏩ Forward the No: 1 file**")
-                    user_states[chat_id]["last_reply"] = reply_message
-                        
-                except ValueError:
-                    await message.reply("Invalid input. Please enter a valid number.")
-
-            elif current_state == "awaiting_files":
-                if message.media:
-                    forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
-                    file_id = str(forwarded_message.id)
-
-                    size = get_size(message.document.file_size) if message.document else "Unknown"
-                    quality_match = re.search(r"(480p|720p|1080p|HEVC|4K)", message.caption or "", re.IGNORECASE)
-                    quality = quality_match.group(1) if quality_match else "Unknown"
-
-                    await message.delete()
-
-                    encoded_file_id = base64.urlsafe_b64encode(f"file_{file_id}".encode("ascii")).decode().strip("=")
-                    user_states[chat_id]["file_ids"].append(encoded_file_id)
-                    user_states[chat_id]["file_sizes"].append(size)
-                    user_states[chat_id]["qualities"].append(quality)
-
-                    user_states[chat_id]["files_received"] += 1
-                    files_received = user_states[chat_id]["files_received"]
-                    num_files_left = user_states[chat_id]["num_files"] - files_received
-
-                    if num_files_left > 0:
-                        reply_message = await message.reply(f"**⏩ Forward the No: {files_received + 1} File(s)**")
-                        user_states[chat_id]["last_reply"] = reply_message                     
-
-                    else:
-                        reply_message = await message.reply("**✅ Now send the movie name**\n\n"
-                                                            "**Example: Lover 2024 Hindi WEB-DL**")                    
-                        user_states[chat_id]["state"] = "awaiting_title"
-                        user_states[chat_id]["last_reply"] = reply_message
-            
-            elif current_state == "awaiting_title":
-                title = message.text.strip()
-                cleaned_title = clean_title(re.sub(r"[(){}:;'!]", "", title))
-
-                imdb_data = await get_poster(cleaned_title)
-                poster = imdb_data.get('poster') if imdb_data else None
-
-                user_states[chat_id].update({
-                    "title": title,
-                    "poster": poster
-                })
-
-                await send_channel_selection(message, chat_id)
-
-async def send_channel_selection(message, chat_id):
+# Step 1: Select Target Channel
+async def send_channel_selection(message):
     """Sends target channel selection buttons."""
-    buttons = [[InlineKeyboardButton(name, callback_data=f"post_{chat_id}_{channel_id}")] for channel_id, name in TARGET_CHANNELS.items()]
+    buttons = [[InlineKeyboardButton(name, callback_data=f"post_{chat_id}")] for chat_id, name in TARGET_CHANNELS.items()]
     reply_markup = InlineKeyboardMarkup(buttons)
     
     await message.reply(
@@ -729,62 +638,107 @@ async def send_channel_selection(message, chat_id):
         reply_markup=reply_markup
     )
 
-@Client.on_callback_query(filters.regex(r"post_(\d+)_(\S+)"))
-async def post_to_channel(client, callback_query):
-    """Handles channel selection and asks for formatting mode."""
-    try:
-        chat_id = int(callback_query.data.split("_")[1])
-        channel_id = int(callback_query.data.split("_")[2])
-
-        user_states[chat_id]["channel_id"] = channel_id
-
-        await send_mode_selection(callback_query.message)
-
-    except Exception as e:
-        print(f"Error selecting channel: {e}")
-
-async def send_mode_selection(message):
-    """Sends buttons for choosing Inline Button or Caption Mode."""
-    buttons = [
-        [InlineKeyboardButton("🔘 Inline Button Mode", callback_data="mode_inline")],
-        [InlineKeyboardButton("📜 Caption Mode", callback_data="mode_caption")]
-    ]
+@Client.on_callback_query(filters.regex("^post_"))
+async def handle_channel_selection(client, callback_query):
+    """Handles channel selection and asks for file count."""
+    chat_id = callback_query.message.chat.id
+    selected_channel = int(callback_query.data.split("_")[1])
     
-    reply_markup = InlineKeyboardMarkup(buttons)
-    
-    await message.reply(
-        "📝 **Choose Posting Mode:**\n\n"
-        "🔘 **Inline Button Mode** – Links appear as buttons below the post.\n"
-        "📜 **Caption Mode** – Links are included inside the caption.\n",
-        reply_markup=reply_markup
-    )
+    user_states[chat_id] = {
+        "state": "awaiting_num_files",
+        "channel_id": selected_channel
+    }
 
-@Client.on_callback_query(filters.regex(r"mode_(\S+)"))
-async def handle_mode_selection(client, callback_query):
-    """Handles mode selection and posts the message accordingly."""
-    try:
-        chat_id = callback_query.message.chat.id
-        mode = callback_query.data.split("_")[1]
-        channel_id = user_states[chat_id]["channel_id"]
-        title = user_states[chat_id]["title"]
-        poster = user_states[chat_id].get("poster")
+    await callback_query.message.edit_text("**Send the number of files you want to add.**\n\n‼️ *Note:* Only enter a number.")
 
-        caption_text = f"🎬 <b>{title}</b>\n\n"
-        file_buttons = []
+# Step 2: Handle File Upload Process
+@Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("post"))
+async def handle_message(client, message):
+    """Handles user messages during the posting process."""
+    chat_id = message.chat.id
 
-        for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
-            short_link_url = await short_link(f"https://t.me/{client.me.username}?start={file_id}")
-            file_size = user_states[chat_id]["file_sizes"][i]
-            if mode == "inline":
-                file_buttons.append([InlineKeyboardButton(f"Download {file_size}", url=short_link_url)])
+    if chat_id in user_states:
+        current_state = user_states[chat_id]["state"]
+
+        # Step 2.1: Receive the number of files
+        if current_state == "awaiting_num_files":
+            try:
+                num_files = int(message.text.strip())
+                if num_files <= 0:
+                    await message.reply("⏩ Forward the file")
+                    return
+
+                user_states[chat_id].update({
+                    "state": "awaiting_files",
+                    "num_files": num_files,
+                    "files_received": 0,
+                    "file_ids": [],
+                    "file_sizes": [],
+                    "qualities": []
+                })
+
+                await message.reply("**⏩ Forward the No: 1 file**")
+                    
+            except ValueError:
+                await message.reply("Invalid input. Please enter a valid number.")
+
+        # Step 2.2: Handle File Forwarding
+        elif current_state == "awaiting_files":
+            if message.media:
+                forwarded_message = await message.copy(chat_id=user_states[chat_id]["channel_id"])
+                file_id = str(forwarded_message.id)
+
+                size = get_size(message.document.file_size) if message.document else "Unknown"
+                quality_match = re.search(r"(480p|720p|1080p|HEVC|4K)", message.caption or "", re.IGNORECASE)
+                quality = quality_match.group(1) if quality_match else None
+
+                encoded_file_id = base64.urlsafe_b64encode(f"file_{file_id}".encode("ascii")).decode().strip("=")
+                user_states[chat_id]["file_ids"].append(encoded_file_id)
+                user_states[chat_id]["file_sizes"].append(size)
+                user_states[chat_id]["qualities"].append(quality)
+
+                user_states[chat_id]["files_received"] += 1
+                files_received = user_states[chat_id]["files_received"]
+                num_files_left = user_states[chat_id]["num_files"] - files_received
+
+                if num_files_left > 0:
+                    await message.reply(f"**⏩ Forward the No: {files_received + 1} File(s)**")                    
+                else:
+                    await message.reply("**Now send the movie name**\n\n**Example: Lover 2024 Hindi WEB-DL**")                    
+                    user_states[chat_id]["state"] = "awaiting_title"
+
+        # Step 3: Process Movie Title and Generate Post with Inline Buttons
+        elif current_state == "awaiting_title":
+            title = message.text.strip()
+            title_clean = re.sub(r"[(){}:;'!]", "", title)
+            cleaned_title = clean_title(title_clean)
+        
+            imdb_data = await get_poster(cleaned_title)
+            poster = imdb_data.get('poster') if imdb_data else None
+        
+            caption = (
+                f"🎬 <b>{title} Tamil HDRip</b>\n\n"
+                "📀 <b>❤️‍🔥 Uploaded By - <a href='https://t.me/Tamilmobx'>@Tamilmobx</a></b>\n\n"
+                "<b>⚡ Direct Files / Fast Link 🚀</b>\n\n"
+            )
+
+            buttons = []
+            for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
+                short_link_url = await short_link(f"https://t.me/{temp.U_NAME}?start={file_id}") or f"https://t.me/{temp.U_NAME}?start={file_id}"
+
+                quality = user_states[chat_id]['qualities'][i] or "Unknown"
+                size = user_states[chat_id]['file_sizes'][i]
+
+                buttons.append([InlineKeyboardButton(f"📥 Download ({size} - {quality})", url=short_link_url)])
+
+            buttons.append([InlineKeyboardButton("📖 How to Download?", url="https://t.me/Howtodowloa/9")])
+            buttons.append([InlineKeyboardButton("🍿 Movie Requests", url="https://t.me/+6QFNHZzurnFjY2Jl")])
+            
+            reply_markup = InlineKeyboardMarkup(buttons)
+
+            if poster:
+                await message.reply_photo(poster, caption=caption, reply_markup=reply_markup)
             else:
-                caption_text += f"🗳 <b>{file_size} ➜ <a href='{short_link_url}'>📥 DOWNLOAD</a></b>\n\n"
-
-        reply_markup = InlineKeyboardMarkup(file_buttons) if mode == "inline" else None
-
-        await client.send_message(channel_id, caption_text, reply_markup=reply_markup)
-
-        user_states.pop(chat_id, None)
-
-    except Exception as e:
-        print(f"Error posting in selected mode: {e}")
+                await message.reply(caption, reply_markup=reply_markup)
+                
+            del user_states[chat_id]
