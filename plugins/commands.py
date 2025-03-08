@@ -69,7 +69,7 @@ async def is_subscribed(bot, query, channel):
     return btn
 #--------------------------force sub code--------------------------#
 def get_size(size):
-    """Get size in readable format:
+    """Get size in a readable format:
        - Round up to a whole number for MB and below
        - Round up to 1 decimal place for GB and above
     """
@@ -77,15 +77,16 @@ def get_size(size):
     units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
     size = float(size)
     i = 0
+    
     while size >= 1024.0 and i < len(units) - 1:
         i += 1
         size /= 1024.0
 
     if units[i] in ["GB", "TB", "PB", "EB"]:
-        return "%.1f %s" % (math.ceil(size * 10) / 10, units[i])  # Round up to 1 decimal place
+        return "%.1f%s" % (math.ceil(size * 10) / 10, units[i])  # Round up to 1 decimal place
     else:
-        return "%d %s" % (math.ceil(size), units[i])  # Round up to whole number
-
+        return "%d%s" % (math.ceil(size), units[i])  # Round up to whole number
+        
 def formate_file_name(file_name):
     chars = ["[", "]", "(", ")"]
     for c in chars:
