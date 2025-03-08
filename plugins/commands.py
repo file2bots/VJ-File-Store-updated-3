@@ -503,7 +503,7 @@ async def post_command(client, message):
     except Exception as e:
         await message.reply(f"Error occurred: {e}")
 
-@Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("post"))
+@Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command(["post", "link", "batch"]))
 async def handle_message(client, message):
     """Handles user messages during the posting process."""
     try:
