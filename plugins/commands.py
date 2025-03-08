@@ -616,7 +616,7 @@ import re
 import base64
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from config import TARGET_CHANNELS, ADMINS, DIRECT_GEN_DB, HOW_TO_POST_SHORT, WEBSITE_URL, WEBSITE_URL_MODE
+from config import TARGET_CHANNELS, ADMINS, DIRECT_GEN_DB
 from utils import gen_link, get_size, short_link, clean_title, get_poster
 
 # Store user states
@@ -698,6 +698,7 @@ async def handle_message(client, message):
                     if num_files_left > 0:
                         reply_message = await message.reply(f"**⏩ Forward the No: {files_received + 1} File(s)**")
                         user_states[chat_id]["last_reply"] = reply_message                     
+
                     else:
                         reply_message = await message.reply("**✅ Now send the movie name**\n\n"
                                                             "**Example: Lover 2024 Hindi WEB-DL**")                    
@@ -716,11 +717,11 @@ async def handle_message(client, message):
                     "poster": poster
                 })
 
-                await send_channel_selection(message)
+                await send_channel_selection(message, chat_id)
 
-async def send_channel_selection(message):
+async def send_channel_selection(message, chat_id):
     """Sends target channel selection buttons."""
-    buttons = [[InlineKeyboardButton(name, callback_data=f"post_{chat_id}")] for chat_id, name in TARGET_CHANNELS.items()]
+    buttons = [[InlineKeyboardButton(name, callback_data=f"post_{chat_id}_{channel_id}")] for channel_id, name in TARGET_CHANNELS.items()]
     reply_markup = InlineKeyboardMarkup(buttons)
     
     await message.reply(
@@ -728,12 +729,12 @@ async def send_channel_selection(message):
         reply_markup=reply_markup
     )
 
-@Client.on_callback_query(filters.regex(r"post_(\S+)"))
+@Client.on_callback_query(filters.regex(r"post_(\d+)_(\S+)"))
 async def post_to_channel(client, callback_query):
     """Handles channel selection and asks for formatting mode."""
     try:
-        chat_id = callback_query.message.chat.id
-        channel_id = int(callback_query.data.split("_")[1])
+        chat_id = int(callback_query.data.split("_")[1])
+        channel_id = int(callback_query.data.split("_")[2])
 
         user_states[chat_id]["channel_id"] = channel_id
 
@@ -787,4 +788,3 @@ async def handle_mode_selection(client, callback_query):
 
     except Exception as e:
         print(f"Error posting in selected mode: {e}")
-
