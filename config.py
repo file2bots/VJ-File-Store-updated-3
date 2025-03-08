@@ -100,3 +100,10 @@ POST_SHORT_URL = environ.get('POST_SHORT_URL', 'modijiurl.com')
 
 HOW_TO_POST_SHORT = environ.get('HOW_TO_POST_SHORT', 'https://t.me/Howtodowloa/13')
 
+# List of target channels for posting
+TARGET_CHANNELS = {
+    -1002308357802: "PKpkpkMy Backup Here",  # Replace with your actual channel ID and name
+    -1001842318978: "Post updated channel",  # Add more channels as needed
+}
+
+
