@@ -649,6 +649,7 @@ async def handle_channel_selection(client, callback_query):
         "channel_id": selected_channel
     }
 
+    await callback_query.answer("✅ Channel selected!")  # Confirmation message
     await callback_query.message.edit_text("**Send the number of files you want to add.**\n\n‼️ *Note:* Only enter a number.")
 
 # Step 2: Handle File Upload Process
@@ -736,9 +737,11 @@ async def handle_message(client, message):
             
             reply_markup = InlineKeyboardMarkup(buttons)
 
+            target_channel = user_states[chat_id]["channel_id"]
             if poster:
-                await message.reply_photo(poster, caption=caption, reply_markup=reply_markup)
+                await client.send_photo(target_channel, poster, caption=caption, reply_markup=reply_markup)
             else:
-                await message.reply(caption, reply_markup=reply_markup)
+                await client.send_message(target_channel, caption, reply_markup=reply_markup)
                 
             del user_states[chat_id]
+
