@@ -584,6 +584,7 @@ async def generate_post(client, chat_id):
 
     keyboard = InlineKeyboardMarkup(buttons)
     for channel_id in TARGET_CHANNELS.keys():
-        await client.send_message(channel_id, caption, parse_mode="HTML", reply_markup=keyboard)
+        await client.send_message(channel_id, caption, parse_mode="html", reply_markup=keyboard)
+
     
     del user_states[chat_id]
