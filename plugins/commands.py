@@ -453,7 +453,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 import os
 
-TARGET_CHANNEL = int(os.getenv("TARGET_CHANNEL"))
+TARGET_CHANNEL = int(os.getenv("-1002308357802"))
 
 user_states = {}
 
