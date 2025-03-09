@@ -453,10 +453,29 @@ from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 import os
 
+import re
+import logging
+import base64
+from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong
+from database.ia_filterdb import unpack_new_file_id
+from pyrogram.errors import ChatAdminRequired, FloodWait
+from pyrogram import Client, filters
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+import os
+
+TARGET_CHANNELS = {
+    -1002308357802: "PKpkpkMy Backup Here",  # Replace with your actual channel ID and name
+    -1001842318978: "Post updated channel",  # Add more channels as needed
+}
+
+DIRECT_GEN_DB = -1002063814391  # Channel for storing files before generating posts
+
 user_states = {}
 
+def escape_html(text):
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
 async def delete_previous_reply(chat_id):
-    """Deletes the last reply message sent by the bot."""
     if chat_id in user_states and "last_reply" in user_states[chat_id]:
         try:
             await user_states[chat_id]["last_reply"].delete()
@@ -465,7 +484,6 @@ async def delete_previous_reply(chat_id):
 
 @Client.on_message(filters.command("post") & filters.user(ADMINS))
 async def post_command(client, message):
-    """Starts the movie posting process."""
     try:
         await message.reply("**🎬 Welcome to the Movie Posting Feature!**\n\n"
                             "👉 Send the number of files you want to add.\n\n"
@@ -476,7 +494,6 @@ async def post_command(client, message):
 
 @Client.on_message(filters.private & (filters.text | filters.media) & ~filters.command("post"))
 async def handle_message(client, message):
-    """Handles user messages during the posting process."""
     try:
         chat_id = message.chat.id
         await delete_previous_reply(chat_id)
@@ -499,7 +516,7 @@ async def handle_message(client, message):
                         "file_ids": [],
                         "file_sizes": [],
                         "qualities": [],
-                        "title": None  # To store the detected movie title
+                        "title": None
                     }
 
                     reply_message = await message.reply("**⏩ Forward the No: 1 file**")
@@ -517,7 +534,6 @@ async def handle_message(client, message):
                     quality_match = re.search(r"(480p|720p|1080p|HEVC|4K)", message.caption or "", re.IGNORECASE)
                     quality = quality_match.group(1) if quality_match else "Unknown"
                     
-                    # Extract title if it's the first file and a caption exists
                     if user_states[chat_id]["files_received"] == 0 and message.caption:
                         user_states[chat_id]["title"] = message.caption.split("[")[0].strip()
 
@@ -536,7 +552,6 @@ async def handle_message(client, message):
                         reply_message = await message.reply(f"**⏩ Forward the No: {files_received + 1} File(s)**")
                         user_states[chat_id]["last_reply"] = reply_message                     
                     else:
-                        # If title is not auto-detected, ask the user for input
                         if not user_states[chat_id]["title"]:
                             reply_message = await message.reply("**Now send the movie name**\n\n"
                                                                 "**Example: Lover 2024 Hindi WEB-DL**")                    
@@ -553,8 +568,7 @@ async def handle_message(client, message):
         await message.reply(f"Error occurred: {e}")
 
 async def generate_post(client, chat_id):
-    """Generates and sends the movie post."""
-    title = user_states[chat_id]["title"]
+    title = escape_html(user_states[chat_id]["title"])
     caption = f"🎬 <b>{title}</b>\n\n"
     buttons = []
 
@@ -570,6 +584,6 @@ async def generate_post(client, chat_id):
 
     keyboard = InlineKeyboardMarkup(buttons)
     for channel_id in TARGET_CHANNELS.keys():
-        await client.send_message(channel_id, caption, parse_mode="html", reply_markup=keyboard)
+        await client.send_message(channel_id, caption, parse_mode="HTML", reply_markup=keyboard)
     
     del user_states[chat_id]
