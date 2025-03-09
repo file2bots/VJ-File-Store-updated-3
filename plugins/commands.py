@@ -450,13 +450,8 @@ from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong
 from database.ia_filterdb import unpack_new_file_id
 from pyrogram.errors import ChatAdminRequired, FloodWait
 from pyrogram import Client, filters
-from pyrogram.types import Message
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 import os
-
-TARGET_CHANNELS = {
-    -1002308357802: "PKpkpkMy Backup Here",  # Replace with your actual channel ID and name
-    -1001842318978: "Post updated channel",  # Add more channels as needed
-}
 
 user_states = {}
 
@@ -472,8 +467,8 @@ async def delete_previous_reply(chat_id):
 async def post_command(client, message):
     """Starts the movie posting process."""
     try:
-        await message.reply("**Welcome to the Rare Movie Post Feature!**\n\n"
-                            "👉🏻 Send the number of files you want to add.\n\n"
+        await message.reply("**🎬 Welcome to the Movie Posting Feature!**\n\n"
+                            "👉 Send the number of files you want to add.\n\n"
                             "‼️ *Note:* Only enter a number.", disable_web_page_preview=True)
         user_states[message.chat.id] = {"state": "awaiting_num_files"}
     except Exception as e:
@@ -492,7 +487,6 @@ async def handle_message(client, message):
             if current_state == "awaiting_num_files":
                 try:
                     num_files = int(message.text.strip())
-
                     if num_files <= 0:
                         rply = await message.reply("⏩ Forward the file")
                         user_states[chat_id]["last_reply"] = rply
@@ -504,7 +498,8 @@ async def handle_message(client, message):
                         "files_received": 0,
                         "file_ids": [],
                         "file_sizes": [],
-                        "qualities": []
+                        "qualities": [],
+                        "title": None  # To store the detected movie title
                     }
 
                     reply_message = await message.reply("**⏩ Forward the No: 1 file**")
@@ -515,13 +510,16 @@ async def handle_message(client, message):
 
             elif current_state == "awaiting_files":
                 if message.media:
-                    for channel_id in TARGET_CHANNELS.keys():
-                        forwarded_message = await message.copy(chat_id=channel_id)
-                        file_id = str(forwarded_message.id)
+                    forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
+                    file_id = str(forwarded_message.id)
 
                     size = get_size(message.document.file_size) if message.document else "Unknown"
                     quality_match = re.search(r"(480p|720p|1080p|HEVC|4K)", message.caption or "", re.IGNORECASE)
-                    quality = quality_match.group(1) if quality_match else None
+                    quality = quality_match.group(1) if quality_match else "Unknown"
+                    
+                    # Extract title if it's the first file and a caption exists
+                    if user_states[chat_id]["files_received"] == 0 and message.caption:
+                        user_states[chat_id]["title"] = message.caption.split("[")[0].strip()
 
                     await message.delete()
 
@@ -538,42 +536,40 @@ async def handle_message(client, message):
                         reply_message = await message.reply(f"**⏩ Forward the No: {files_received + 1} File(s)**")
                         user_states[chat_id]["last_reply"] = reply_message                     
                     else:
-                        reply_message = await message.reply("**Now send the movie name**\n\n"
-                                                            "**Example: Lover 2024 Hindi WEB-DL**")                    
-                        user_states[chat_id]["state"] = "awaiting_title"
-                        user_states[chat_id]["last_reply"] = reply_message
+                        # If title is not auto-detected, ask the user for input
+                        if not user_states[chat_id]["title"]:
+                            reply_message = await message.reply("**Now send the movie name**\n\n"
+                                                                "**Example: Lover 2024 Hindi WEB-DL**")                    
+                            user_states[chat_id]["state"] = "awaiting_title"
+                            user_states[chat_id]["last_reply"] = reply_message
+                        else:
+                            await generate_post(client, chat_id)
             
             elif current_state == "awaiting_title":
-                title = message.text.strip()
-                title_clean = re.sub(r"[()\[\]{}:;'!]", "", title)
-                cleaned_title = clean_title(title_clean)
-            
-                imdb_data = await get_poster(cleaned_title)
-                poster = imdb_data.get('poster') if imdb_data else None
-            
-                caption = (
-                    f"🎬 <b>{title} Tamil HDRip</b>\n\n"
-                    "📀 <b>❤️‍🔥 ᴜᴘʟᴏᴀᴅᴇᴅ ʙʏ - <a href='https://t.me/Tamilmobx'>@Tamilmobx</a></b>\n\n"
-                    "<b>⚡ ᴅɪʀᴇᴄᴛ ғɪʟᴇs / ꜰᴀꜱᴛ ʟɪɴᴋ 🚀</b>\n\n"
-                )
-
-                for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
-                    long_url = f"https://t.me/{temp.U_NAME}?start={file_id}"
-                    short_link_url = await short_link(long_url) or long_url
-
-                    quality = user_states[chat_id]['qualities'][i] or "Unknown"
-                    size = user_states[chat_id]['file_sizes'][i]
-                    
-                    caption += f"🗳 <b>{size} [{quality}] ➜ <a href='{short_link_url}'>📥 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗</a></b>\n\n"
-
-                for channel_id in TARGET_CHANNELS.keys():
-                    if poster:
-                        await client.send_photo(channel_id, poster, caption=caption, parse_mode="html")
-                    else:
-                        await client.send_message(channel_id, caption, parse_mode="html")
-                
-                await message.delete()
-                del user_states[chat_id]
+                user_states[chat_id]["title"] = message.text.strip()
+                await generate_post(client, chat_id)
 
     except Exception as e:
         await message.reply(f"Error occurred: {e}")
+
+async def generate_post(client, chat_id):
+    """Generates and sends the movie post."""
+    title = user_states[chat_id]["title"]
+    caption = f"🎬 <b>{title}</b>\n\n"
+    buttons = []
+
+    for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
+        quality = user_states[chat_id]['qualities'][i]
+        size = user_states[chat_id]['file_sizes'][i]
+        
+        long_url = f"https://t.me/{temp.U_NAME}?start={file_id}"
+        link = await short_link(long_url) or long_url
+
+        caption += f"🗳 <b>{size} [{quality}] ➜ <a href='{link}'>📥 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗</a></b>\n\n"
+        buttons.append([InlineKeyboardButton(f"{size} [{quality}] 📥", url=link)])
+
+    keyboard = InlineKeyboardMarkup(buttons)
+    for channel_id in TARGET_CHANNELS.keys():
+        await client.send_message(channel_id, caption, parse_mode="html", reply_markup=keyboard)
+    
+    del user_states[chat_id]
