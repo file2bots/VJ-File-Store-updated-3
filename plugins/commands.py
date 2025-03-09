@@ -103,8 +103,7 @@ def formate_file_name(file_name):
     file_name = '@VJ_Botz ' + ' '.join(filter(lambda x: not x.startswith('http') and not x.startswith('@') and not x.startswith('www.'), file_name.split()))
     return file_name
 
-#@Client.on_message(filters.command("start") & filters.incoming)
-Client.on_message(filters.command("start") & filters.private)
+@Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     user_id = message.from_user.id
     mention = message.from_user.mention
@@ -141,9 +140,6 @@ async def start(client, message):
             ],[
             InlineKeyboardButton('💁‍♀️ ʜᴇʟᴘ', callback_data='help'),
             InlineKeyboardButton('😊 ᴀʙᴏᴜᴛ', callback_data='about')
-            ],[
-            InlineKeyboardButton("⚙️ Settings", callback_data="settings_menu"),
-            InlineKeyboardButton("❌ Close", callback_data="close")
         ]]
         if CLONE_MODE == True:
             buttons.append([InlineKeyboardButton('🤖 ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄʟᴏɴᴇ ʙᴏᴛ', callback_data='clone')])
@@ -155,6 +151,28 @@ async def start(client, message):
             reply_markup=reply_markup
         )
         return
+#-------------------------------------------------------------------------------------
+@StreamBot.on_message(filters.command("Set") & filters.private)
+async def set_handler(client, message):
+    await db.hs_add_user(client, message)
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("💖 Bot Owner", url="https://t.me/Heart_Thieft")],
+        [
+            InlineKeyboardButton("📢 Updates", url="https://t.me/TamizhFiles/51"),
+            InlineKeyboardButton("🎬 Movies", url="https://t.me/+hZG8OILc-qA3MzFl")
+        ],
+        [
+            InlineKeyboardButton("⚙️ Settings", callback_data="settings_menu"),
+            InlineKeyboardButton("❌ Close", callback_data="close")
+        ]
+    ])
+
+    await message.reply_text(
+        text=script.START_TXT.format(message.from_user.mention),
+        disable_web_page_preview=True,
+        reply_markup=keyboard,
+    )
 
 
 
