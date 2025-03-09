@@ -453,7 +453,10 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 import os
 
-TARGET_CHANNEL = int(os.getenv("-1002308357802"))
+TARGET_CHANNELS = {
+    -1002308357802: "PKpkpkMy Backup Here",  # Replace with your actual channel ID and name
+    -1001842318978: "Post updated channel",  # Add more channels as needed
+}
 
 user_states = {}
 
@@ -512,8 +515,9 @@ async def handle_message(client, message):
 
             elif current_state == "awaiting_files":
                 if message.media:
-                    forwarded_message = await message.copy(chat_id=TARGET_CHANNEL)
-                    file_id = str(forwarded_message.id)
+                    for channel_id in TARGET_CHANNELS.keys():
+                        forwarded_message = await message.copy(chat_id=channel_id)
+                        file_id = str(forwarded_message.id)
 
                     size = get_size(message.document.file_size) if message.document else "Unknown"
                     quality_match = re.search(r"(480p|720p|1080p|HEVC|4K)", message.caption or "", re.IGNORECASE)
@@ -562,16 +566,11 @@ async def handle_message(client, message):
                     
                     caption += f"🗳 <b>{size} [{quality}] ➜ <a href='{short_link_url}'>📥 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗</a></b>\n\n"
 
-                caption += (
-                    "<b>🛠 Dᴏᴡɴʟᴏᴀᴅ Gᴜɪᴅᴇ : <a href='https://t.me/Howtodowloa/9'>📖 Cʟɪᴄᴋ Hᴇʀᴇ 𓆪</a> 👀</b>\n\n"
-                    "<b>🍿 𓆩 Mᴏᴠɪᴇ Rᴇǫ 𝟸𝟺x𝟽 ☛ : <a href='https://t.me/+6QFNHZzurnFjY2Jl'>📢 Cʟɪᴄᴋ Hᴇʀᴇ</a> 🔥</b>\n\n"
-                    "<b>ー♡꘎ 𓆩 Sʜᴀʀᴇ Wɪᴛʜ Fʀɪᴇɴᴅs 𓆪꘎♡ー</b>"
-                )
-
-                if poster:
-                    await client.send_photo(TARGET_CHANNEL, poster, caption=caption, parse_mode="html")
-                else:
-                    await client.send_message(TARGET_CHANNEL, caption, parse_mode="html")
+                for channel_id in TARGET_CHANNELS.keys():
+                    if poster:
+                        await client.send_photo(channel_id, poster, caption=caption, parse_mode="html")
+                    else:
+                        await client.send_message(channel_id, caption, parse_mode="html")
                 
                 await message.delete()
                 del user_states[chat_id]
