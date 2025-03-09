@@ -103,7 +103,8 @@ def formate_file_name(file_name):
     file_name = '@VJ_Botz ' + ' '.join(filter(lambda x: not x.startswith('http') and not x.startswith('@') and not x.startswith('www.'), file_name.split()))
     return file_name
 
-@Client.on_message(filters.command("start") & filters.incoming)
+#@Client.on_message(filters.command("start") & filters.incoming)
+Client.on_message(filters.command("start") & filters.private)
 async def start(client, message):
     user_id = message.from_user.id
     mention = message.from_user.mention
