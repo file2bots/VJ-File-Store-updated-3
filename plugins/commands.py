@@ -451,6 +451,9 @@ from database.ia_filterdb import unpack_new_file_id
 from pyrogram.errors import ChatAdminRequired, FloodWait
 from pyrogram import Client, filters
 from pyrogram.types import Message
+import os
+
+TARGET_CHANNEL = int(os.getenv("TARGET_CHANNEL"))
 
 user_states = {}
 
@@ -509,7 +512,7 @@ async def handle_message(client, message):
 
             elif current_state == "awaiting_files":
                 if message.media:
-                    forwarded_message = await message.copy(chat_id=DIRECT_GEN_DB)
+                    forwarded_message = await message.copy(chat_id=TARGET_CHANNEL)
                     file_id = str(forwarded_message.id)
 
                     size = get_size(message.document.file_size) if message.document else "Unknown"
@@ -544,7 +547,6 @@ async def handle_message(client, message):
                 imdb_data = await get_poster(cleaned_title)
                 poster = imdb_data.get('poster') if imdb_data else None
             
-                # Creating formatted text-based links with bold
                 caption = (
                     f"🎬 <b>{title} Tamil HDRip</b>\n\n"
                     "📀 <b>❤️‍🔥 ᴜᴘʟᴏᴀᴅᴇᴅ ʙʏ - <a href='https://t.me/Tamilmobx'>@Tamilmobx</a></b>\n\n"
@@ -552,17 +554,12 @@ async def handle_message(client, message):
                 )
 
                 for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
-                    if WEBSITE_URL_MODE == True:
-                        long_url = f"{WEBSITE_URL}?start={file_id}"
-                    else:
-                        long_url = f"https://t.me/{temp.U_NAME}?start={file_id}"
+                    long_url = f"https://t.me/{temp.U_NAME}?start={file_id}"
                     short_link_url = await short_link(long_url) or long_url
 
                     quality = user_states[chat_id]['qualities'][i] or "Unknown"
                     size = user_states[chat_id]['file_sizes'][i]
                     
-                    #caption += f"🗳 **{size} [{quality}]** - [**Generated Link**]({short_link_url})\n"
-                    #caption += f"🗳 **{size} {quality}** - [**Generated Link**]({short_link_url})\n"
                     caption += f"🗳 <b>{size} [{quality}] ➜ <a href='{short_link_url}'>📥 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗</a></b>\n\n"
 
                 caption += (
@@ -572,16 +569,12 @@ async def handle_message(client, message):
                 )
 
                 if poster:
-                    await message.reply_photo(poster, caption=caption)
+                    await client.send_photo(TARGET_CHANNEL, poster, caption=caption, parse_mode="html")
                 else:
-                    await message.reply(caption)
-                    
+                    await client.send_message(TARGET_CHANNEL, caption, parse_mode="html")
+                
                 await message.delete()
                 del user_states[chat_id]
 
-        else:
-            return
     except Exception as e:
         await message.reply(f"Error occurred: {e}")
-
-
