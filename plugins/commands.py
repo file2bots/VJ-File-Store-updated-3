@@ -42,6 +42,8 @@ BATCH_FILES = {}
 async def allowed(_, __, message):
     if PUBLIC_FILE_STORE:
         return True
+    if message.from_user and not await db.is_user_exist(message.from_user.id):
+        await db.add_user(message.from_user.id, message.from_user.first_name)
     if message.from_user and message.from_user.id in ADMINS:
         return True
     return False
@@ -591,50 +593,54 @@ async def auto_post(client, message):
     quality_match = re.search(r"(480p|720p|1080p|4K|HDRip|BluRay|WEBRip|DVDRip)", file_name, re.IGNORECASE)
     quality = quality_match.group(1) if quality_match else "Unknown Quality"
     
-    if title not in MOVIE_FILES:
-        MOVIE_FILES[title] = {"year": year, "files": []}
+    movie_data = await db.get_movie(title)
     
-    MOVIE_FILES[title]["files"].append({
+    if not movie_data:
+        imdb_data = await get_poster(title)
+        if not imdb_data:
+            return
+        
+        movie_data = {
+            "title": title,
+            "year": year,
+            "imdb": {
+                "poster": imdb_data.get("poster", "https://example.com/default_poster.jpg"),
+                "rating": imdb_data.get("rating", "N/A"),
+                "plot": imdb_data.get("plot", "N/A"),
+                "language": imdb_data.get("language", "N/A")
+            },
+            "files": []
+        }
+    
+    movie_data["files"].append({
         "size": size,
         "quality": quality,
         "file_id": message.message_id
     })
     
-    await asyncio.sleep(5)
+    await db.save_movie(title, year, movie_data["files"])
     
-    if len(MOVIE_FILES[title]["files"]) == 1:
-        imdb_data = await get_poster(title)
-        if not imdb_data:
-            return
-        
-        MOVIE_FILES[title]["imdb"] = {
-            "poster": imdb_data.get("poster", "https://example.com/default_poster.jpg"),
-            "rating": imdb_data.get("rating", "N/A"),
-            "plot": imdb_data.get("plot", "N/A"),
-            "language": imdb_data.get("language", "N/A")
-        }
-    
-    buttons = [[InlineKeyboardButton(f"{file['quality']} ({file['size']})", callback_data=f"download_{file['file_id']}")] for file in MOVIE_FILES[title]["files"]]
+    buttons = [[InlineKeyboardButton(f"{file['quality']} ({file['size']})", callback_data=f"download_{file['file_id']}")] for file in movie_data["files"]]
     
     caption = f"""
-🎬 **{title} ({MOVIE_FILES[title]['year']})**  
-⭐ **IMDb:** {MOVIE_FILES[title]['imdb']['rating']}/10  
-📖 **Plot:** {MOVIE_FILES[title]['imdb']['plot']}  
-🌍 **Language:** {MOVIE_FILES[title]['imdb']['language']}  
+🎬 **{title} ({year})**  
+⭐ **IMDb:** {movie_data['imdb']['rating']}/10  
+📖 **Plot:** {movie_data['imdb']['plot']}  
+🌍 **Language:** {movie_data['imdb']['language']}  
 
 📂 **Select a file to download:**
     """
     
     reply_markup = InlineKeyboardMarkup(buttons)
     
-    await client.send_photo(AUTO_POST_CHANNEL, photo=MOVIE_FILES[title]['imdb']['poster'], caption=caption, reply_markup=reply_markup)
-    await client.send_photo(SECONDARY_POST_CHANNEL, photo=MOVIE_FILES[title]['imdb']['poster'], caption=caption, reply_markup=reply_markup)
+    await client.send_photo(AUTO_POST_CHANNEL, photo=movie_data['imdb']['poster'], caption=caption, reply_markup=reply_markup)
+    await client.send_photo(SECONDARY_POST_CHANNEL, photo=movie_data['imdb']['poster'], caption=caption, reply_markup=reply_markup)
 
 @Client.on_callback_query(filters.regex("^download_"))
 async def generate_file_link(client, callback_query):
     message_id = int(callback_query.data.split("_")[1])
     msg = await client.get_messages(AUTO_POST_CHANNEL, message_id)
-    caption_text = msg.caption.split("\n")[0]  # Extract the first line for movie title
+    caption_text = msg.caption.split("\n")[0]
     title_match = re.search(r"🎬 \*\*(.+?) \((\d{4})\)\*\*", caption_text)
     
     if not title_match:
@@ -642,14 +648,16 @@ async def generate_file_link(client, callback_query):
         return
 
     title = title_match.group(1)
-    if title not in MOVIE_FILES:
+    movie_data = await db.get_movie(title)
+    
+    if not movie_data:
         await callback_query.answer("Movie details not found!", show_alert=True)
         return
     
     download_buttons = []
-    caption_text = f"🎬 **{title} ({MOVIE_FILES[title]['year']})**\n\n📥 **Select a file to download:**\n"
+    caption_text = f"🎬 **{title} ({movie_data['year']})**\n\n📥 **Select a file to download:**\n"
 
-    for file in MOVIE_FILES[title]["files"]:
+    for file in movie_data["files"]:
         file_id = file["file_id"]
         file_size = file["size"]
         quality = file["quality"]
@@ -664,11 +672,3 @@ async def generate_file_link(client, callback_query):
         reply_markup=reply_markup, 
         parse_mode=enums.ParseMode.MARKDOWN
     )
-
-
-        
-#----------------------------Post Code With Inlinebutton,Caption And Poster---------------------
-
-
-
-
