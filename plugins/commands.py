@@ -449,7 +449,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )  
 #"""------------------------------Link - batch----------------------------------------------------
 
-@Client.on_message(filters.command(['link']) & filters.create(allowed))
+#"""@Client.on_message(filters.command(['link']) & filters.create(allowed))
 async def gen_link_s(bot, message):
     username = (await bot.get_me()).username
     replied = message.reply_to_message
