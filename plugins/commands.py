@@ -469,9 +469,10 @@ async def gen_link_s(bot, message):
     file_name = replied.document.file_name if replied.document else "Unknown"
     file_size = replied.document.file_size if replied.document else "Unknown"
     file_size_mb = round(file_size / (1024 * 1024), 2) if isinstance(file_size, int) else "Unknown"
+
+    # Extract Quality from Filename
     quality_match = re.search(r'(\d{3,4}p|HEVC)', file_name, re.IGNORECASE)
     quality = quality_match.group(1) if quality_match else "Unknown"
-
 
     # Generate Share Link
     if WEBSITE_URL_MODE:
@@ -479,10 +480,22 @@ async def gen_link_s(bot, message):
     else:
         share_link = f"https://t.me/{username}?start={outstr}"
 
-    # Generate Direct Download & Stream Links
+    # Ensure File Name is URL-safe
     safe_file_name = quote_plus(file_name)
+    
+    # Debugging Logs (Remove in Production)
+    print(f"File ID: {file_id}")
+    print(f"File Name: {file_name}")
+    print(f"Encoded File Name: {safe_file_name}")
+    print(f"Hash: {get_hash(log_msg)}")
+
+    # Generate Direct Download & Stream Links
     stream_url = f"{URL}watch/{file_id}/{safe_file_name}?hash={get_hash(log_msg)}"
     download_url = f"{URL}{file_id}/{safe_file_name}?hash={get_hash(log_msg)}"
+
+    # Debugging Stream URL
+    print(f"Stream URL: {stream_url}")
+    print(f"Download URL: {download_url}")
 
     # Create Inline Keyboard
     button = [[
