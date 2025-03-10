@@ -76,6 +76,32 @@ async def is_subscribed(bot, query, channel):
             pass
     return btn
 #--------------------------force sub code--------------------------#
+async def get_invite_link(bot, chat_id):
+    """Get an invite link for a channel (username or export link)."""
+    try:
+        chat = await bot.get_chat(chat_id)
+        if chat.username:
+            return f"https://t.me/{chat.username}"
+        else:
+            return await bot.export_chat_invite_link(chat_id)
+    except ChatAdminRequired:
+        logger.warning(f"Bot is not admin in the channel: {chat_id}")
+    except Exception as e:
+        logger.error(f"Failed to get invite link for {chat_id}: {e}")
+    return None
+
+async def is_subscribed(bot, query, channel):
+    btn = []
+    for id in channel:
+        chat = await bot.get_chat(int(id))
+        try:
+            await bot.get_chat_member(id, query.from_user.id)
+        except UserNotParticipant:
+            btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
+        except Exception as e:
+            pass
+    return btn
+#--------------------------force sub code--------------------------#
 def get_size(size):
     """Get size in a readable format:
        - Round up to a whole number for MB and below
@@ -150,6 +176,10 @@ async def start(client, message):
             reply_markup=reply_markup
         )
         return
+
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
     
     data = message.command[1]
     try:
@@ -276,6 +306,10 @@ async def start(client, message):
             await k.edit_text("<b>Your All Files/Videos is successfully deleted!!!</b>")
         return
 
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
+
     pre, decode_file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
     if not await check_verification(client, message.from_user.id) and VERIFY_MODE == True:
         btn = [[
@@ -330,6 +364,10 @@ async def start(client, message):
         return
     except:
         pass
+        
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
 
 @Client.on_message(filters.command('api') & filters.private)
 async def shortener_api_handler(client, m: Message):
@@ -345,6 +383,10 @@ async def shortener_api_handler(client, m: Message):
         api = cmd[1].strip()
         await update_user_info(user_id, {"shortener_api": api})
         await m.reply("<b>Shortener API updated successfully to</b> " + api)
+
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
 
 @Client.on_message(filters.command("base_site") & filters.private)
 async def base_site_handler(client, m: Message):
@@ -364,6 +406,10 @@ async def base_site_handler(client, m: Message):
             return await m.reply(text=text, disable_web_page_preview=True)
         await update_user_info(user_id, {"base_site": base_site})
         await m.reply("<b>Base Site updated successfully</b>")
+
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
@@ -386,6 +432,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
         )
+
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
     
     elif query.data == "start":
         buttons = [[
@@ -412,6 +462,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
             parse_mode=enums.ParseMode.HTML
         )
 
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
     
     elif query.data == "clone":
         buttons = [[
@@ -430,6 +483,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
             parse_mode=enums.ParseMode.HTML
         )          
 
+# Don't Remove Credit Tg - @VJ_Botz
+# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
+# Ask Doubt on telegram @KingVJ01
     
     elif query.data == "help":
         buttons = [[
@@ -447,11 +503,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
         )  
-#"""------------------------------Link - batch----------------------------------------------------
+
 
 
         
-#----------------------------Post Code With Inlinebutton,Caption And Poster---------------------
+#----------------------------Post Code With Inlinebutton,Caption And Poster---------------------#
+
+#poster make features developer - Ansh Vachhani
 
 import re
 import logging
