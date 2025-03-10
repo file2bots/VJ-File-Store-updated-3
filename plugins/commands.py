@@ -453,71 +453,25 @@ async def cb_handler(client: Client, query: CallbackQuery):
 async def gen_link_s(bot, message):
     username = (await bot.get_me()).username
     replied = message.reply_to_message
-    
-    if not replied or not replied.document:
-        return await message.reply('Reply to a file to get a shareable link.')
-
-    log_msg = await replied.copy(LOG_CHANNEL)
-    file_id = str(log_msg.id)
-    string = f"file_{file_id}"
+    if not replied:
+        return await message.reply('Reply to a message to get a shareable link.')
+        
+    post = await replied.copy(LOG_CHANNEL)
+    file_id = str(post.id)
+    string = f"file_"
+    string += file_id
     outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-    
     user_id = message.from_user.id
     user = await get_user(user_id)
-
-    # Get File Details
-    file_name = replied.document.file_name if replied.document else "Unknown"
-    file_size = replied.document.file_size if replied.document else "Unknown"
-    file_size_mb = round(file_size / (1024 * 1024), 2) if isinstance(file_size, int) else "Unknown"
-
-    # Extract Quality from Filename
-    quality_match = re.search(r'(\d{3,4}p|HEVC)', file_name, re.IGNORECASE)
-    quality = quality_match.group(1) if quality_match else "Unknown"
-
-    # Generate Share Link
-    if WEBSITE_URL_MODE:
+    if WEBSITE_URL_MODE == True:
         share_link = f"{WEBSITE_URL}?start={outstr}"
     else:
         share_link = f"https://t.me/{username}?start={outstr}"
-
-    # Ensure File Name is URL-safe
-    safe_file_name = quote_plus(file_name)
-    
-    # Debugging Logs (Remove in Production)
-    print(f"File ID: {file_id}")
-    print(f"File Name: {file_name}")
-    print(f"Encoded File Name: {safe_file_name}")
-    print(f"Hash: {get_hash(log_msg)}")
-
-    # Generate Direct Download & Stream Links
-    stream_url = f"{URL}watch/{file_id}/{safe_file_name}?hash={get_hash(log_msg)}"
-    download_url = f"{URL}{file_id}/{safe_file_name}?hash={get_hash(log_msg)}"
-
-    # Debugging Stream URL
-    print(f"Stream URL: {stream_url}")
-    print(f"Download URL: {download_url}")
-
-    # Create Inline Keyboard
-    button = [[
-        InlineKeyboardButton("• ᴅᴏᴡɴʟᴏᴀᴅ •", url=download_url),
-        InlineKeyboardButton("• ᴡᴀᴛᴄʜ •", url=stream_url)
-    ]]
-    reply_markup = InlineKeyboardMarkup(button)
-
-    # Caption with File Details
-    caption = (
-        f"📂 **File Name:** `{file_name}`\n"
-        f"📦 **Size:** `{file_size_mb} MB`\n"
-        f"🎥 **Quality:** `{quality}`\n\n"
-        f"🔗 **[Click Here to Access]({share_link})**"
-    )
-
-    # Shorten URL if user has a shortener
-    if user["base_site"] and user["shortener_api"]:
+    if user["base_site"] and user["shortener_api"] != None:
         short_link = await get_short_link(user, share_link)
-        caption += f"\n🖇️ **Short Link:** {short_link}"
-
-    await message.reply(caption, reply_markup=reply_markup)
+        await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}\n\n🖇️ sʜᴏʀᴛ ʟɪɴᴋ :- {short_link}</b>")
+    else:
+        await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
         
 
 @Client.on_message(filters.command(['batch']) & filters.create(allowed))
