@@ -15,11 +15,9 @@ from urllib.parse import quote_plus
 from validators import domain
 from Script import script
 from plugins.dbusers import db
-from plugins.users_api import get_user, get_short_link
 from pyrogram import Client, filters, enums
 from plugins.users_api import get_user, update_user_info
 from pyrogram.errors import ChatAdminRequired, FloodWait, UserNotParticipant, InviteRequestSent
-from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified
 from pyrogram.types import *
 
 # Lazy import to prevent circular dependency
@@ -39,42 +37,6 @@ logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
 
-async def allowed(_, __, message):
-    if PUBLIC_FILE_STORE:
-        return True
-    if message.from_user and not await db.is_user_exist(message.from_user.id):
-        await db.add_user(message.from_user.id, message.from_user.first_name)
-    if message.from_user and message.from_user.id in ADMINS:
-        return True
-    return False
-
-
-#--------------------------force sub code--------------------------#
-async def get_invite_link(bot, chat_id):
-    """Get an invite link for a channel (username or export link)."""
-    try:
-        chat = await bot.get_chat(chat_id)
-        if chat.username:
-            return f"https://t.me/{chat.username}"
-        else:
-            return await bot.export_chat_invite_link(chat_id)
-    except ChatAdminRequired:
-        logger.warning(f"Bot is not admin in the channel: {chat_id}")
-    except Exception as e:
-        logger.error(f"Failed to get invite link for {chat_id}: {e}")
-    return None
-
-async def is_subscribed(bot, query, channel):
-    btn = []
-    for id in channel:
-        chat = await bot.get_chat(int(id))
-        try:
-            await bot.get_chat_member(id, query.from_user.id)
-        except UserNotParticipant:
-            btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
-        except Exception as e:
-            pass
-    return btn
 #--------------------------force sub code--------------------------#
 async def get_invite_link(bot, chat_id):
     """Get an invite link for a channel (username or export link)."""
