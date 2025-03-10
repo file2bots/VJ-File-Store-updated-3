@@ -579,50 +579,91 @@ async def gen_link_batch(bot, message):
         
 #--------------------------Genlink------------------------------#
 
-@Client.on_message(filters.command("genpost") & filters.private & filters.create(allowed))
-async def generate_post(bot, message):
-    await message.reply_text("Enter your movie title:")
-    response = await bot.listen(message.chat.id)
-    title = response.text
-
-    # Fetch IMDb details
-    imdb_data = await get_poster(title)
-    if not imdb_data:
-        await message.reply_text("IMDb details not found.")
+@Client.on_message(filters.channel & (filters.document | filters.video))
+async def auto_post(client, message):
+    file_name = message.document.file_name if message.document else message.video.file_name
+    match = re.search(r"(.+?)\s*\((\d{4})\)", file_name)
+    if not match:
         return
-
-    # Extract IMDb details
-    poster = imdb_data.get("poster")
-    year = imdb_data.get("year", "N/A")
-    rating = imdb_data.get("rating", "N/A")
-    plot = imdb_data.get("plot", "N/A")
-    language = imdb_data.get("language", "N/A")
-    quality = imdb_data.get("quality", "N/A")
-
-    # Search for files in the log channel
-    files = []
-    async for msg in bot.search_messages(LOG_CHANNEL, query=title, filter=enums.MessagesFilter.VIDEO):
-        if msg.document or msg.video:
-            file_name = msg.document.file_name if msg.document else msg.video.file_name
-            file_id = msg.document.file_id if msg.document else msg.video.file_id
-            files.append((file_name, file_id))
-
-    if not files:
-        await message.reply_text("No files found for this title.")
-        return
-
-    file_links = "\n".join([f"➡️ [{file[0]}](t.me/yourbot?start={file[1]})" for file in files])
+    
+    title, year = match.groups()
+    size = get_size(message.document.file_size if message.document else message.video.file_size)
+    quality_match = re.search(r"(480p|720p|1080p|4K|HDRip|BluRay|WEBRip|DVDRip)", file_name, re.IGNORECASE)
+    quality = quality_match.group(1) if quality_match else "Unknown Quality"
+    
+    if title not in MOVIE_FILES:
+        MOVIE_FILES[title] = {"year": year, "files": []}
+    
+    MOVIE_FILES[title]["files"].append({
+        "size": size,
+        "quality": quality,
+        "file_id": message.message_id
+    })
+    
+    await asyncio.sleep(5)
+    
+    if len(MOVIE_FILES[title]["files"]) == 1:
+        imdb_data = await get_poster(title)
+        if not imdb_data:
+            return
+        
+        MOVIE_FILES[title]["imdb"] = {
+            "poster": imdb_data.get("poster", "https://example.com/default_poster.jpg"),
+            "rating": imdb_data.get("rating", "N/A"),
+            "plot": imdb_data.get("plot", "N/A"),
+            "language": imdb_data.get("language", "N/A")
+        }
+    
+    buttons = [[InlineKeyboardButton(f"{file['quality']} ({file['size']})", callback_data=f"download_{file['file_id']}")] for file in MOVIE_FILES[title]["files"]]
+    
     caption = f"""
-🎬 **{title} ({year})**  
-⭐ **IMDb:** {rating}/10  
-📖 **Plot:** {plot}  
-🌍 **Language:** {language}  
-🎥 **Quality:** {quality}  
+🎬 **{title} ({MOVIE_FILES[title]['year']})**  
+⭐ **IMDb:** {MOVIE_FILES[title]['imdb']['rating']}/10  
+📖 **Plot:** {MOVIE_FILES[title]['imdb']['plot']}  
+🌍 **Language:** {MOVIE_FILES[title]['imdb']['language']}  
 
-📂 **Files:**
-{file_links}
+📂 **Select a file to download:**
     """
-    await message.reply_photo(photo=poster, caption=caption, parse_mode=enums.ParseMode.MARKDOWN)
+    
+    reply_markup = InlineKeyboardMarkup(buttons)
+    
+    await client.send_photo(AUTO_POST_CHANNEL, photo=MOVIE_FILES[title]['imdb']['poster'], caption=caption, reply_markup=reply_markup)
+    await client.send_photo(SECONDARY_POST_CHANNEL, photo=MOVIE_FILES[title]['imdb']['poster'], caption=caption, reply_markup=reply_markup)
+
+@Client.on_callback_query(filters.regex("^download_"))
+async def generate_file_link(client, callback_query):
+    message_id = int(callback_query.data.split("_")[1])
+    msg = await client.get_messages(AUTO_POST_CHANNEL, message_id)
+    caption_text = msg.caption.split("\n")[0]  # Extract the first line for movie title
+    title_match = re.search(r"🎬 \*\*(.+?) \((\d{4})\)\*\*", caption_text)
+    
+    if not title_match:
+        await callback_query.answer("Movie title not found!", show_alert=True)
+        return
+
+    title = title_match.group(1)
+    if title not in MOVIE_FILES:
+        await callback_query.answer("Movie details not found!", show_alert=True)
+        return
+    
+    download_buttons = []
+    caption_text = f"🎬 **{title} ({MOVIE_FILES[title]['year']})**\n\n📥 **Select a file to download:**\n"
+
+    for file in MOVIE_FILES[title]["files"]:
+        file_id = file["file_id"]
+        file_size = file["size"]
+        quality = file["quality"]
+        share_link = f"https://t.me/{client.me.username}?start={file_id}"
+        caption_text += f"➡️ **{quality} ({file_size})** - [Download]({share_link})\n"
+        download_buttons.append([InlineKeyboardButton(f"{quality} ({file_size})", url=share_link)])
+
+    reply_markup = InlineKeyboardMarkup(download_buttons)
+    
+    await callback_query.message.edit_caption(
+        caption_text, 
+        reply_markup=reply_markup, 
+        parse_mode=enums.ParseMode.MARKDOWN
+    )
 
 
         
