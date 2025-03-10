@@ -449,28 +449,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )  
 #------------------------------Link - batch----------------------------------------------------
 
-@Client.on_message((filters.document | filters.video | filters.audio) & filters.private & filters.create(allowed))
-async def incoming_gen_link(bot, message):
-    username = (await bot.get_me()).username
-    file_type = message.media
-    post = await message.copy(LOG_CHANNEL)
-    file_id = str(post.id)
-    string = 'file_'
-    string += file_id
-    outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-    user_id = message.from_user.id
-    user = await get_user(user_id)
-    if WEBSITE_URL_MODE == True:
-        share_link = f"{WEBSITE_URL}?start={outstr}"
-    else:
-        share_link = f"https://t.me/{username}?start={outstr}"
-    if user["base_site"] and user["shortener_api"] != None:
-        short_link = await get_short_link(user, share_link)
-        await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}\n\n🖇️ sʜᴏʀᴛ ʟɪɴᴋ :- {short_link}</b>")
-    else:
-        await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
-        
-
 @Client.on_message(filters.command(['link']) & filters.create(allowed))
 async def gen_link_s(bot, message):
     username = (await bot.get_me()).username
