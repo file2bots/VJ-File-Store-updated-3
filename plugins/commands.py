@@ -16,9 +16,11 @@ from validators import domain
 from Script import script
 from plugins.dbusers import db
 from pyrogram import Client, filters, enums
-from plugins.users_api import get_user, update_user_info
+from plugins.users_api import get_user, update_user_info, get_short_link
 from pyrogram.errors import ChatAdminRequired, FloodWait, UserNotParticipant, InviteRequestSent
+from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified
 from pyrogram.types import *
+
 
 # Lazy import to prevent circular dependency
 from config import *
@@ -615,18 +617,6 @@ async def handle_message(client, message):
         await message.reply(f"Error occurred: {e}")
 
 #---------------------------------Link and Batch------------------------------------------#
-import re
-from pyrogram import filters, Client, enums
-from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified
-from config import ADMINS, LOG_CHANNEL, PUBLIC_FILE_STORE, WEBSITE_URL, WEBSITE_URL_MODE
-from plugins.users_api import get_user, get_short_link
-import re
-import os
-import json
-import base64
-
-
-
 async def allowed(_, __, message):
     if PUBLIC_FILE_STORE:
         return True
