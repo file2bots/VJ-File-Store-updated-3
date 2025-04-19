@@ -687,50 +687,83 @@ async def handle_message(client, message):
                 title = message.text.strip()
                 title_clean = re.sub(r"[()\[\]{}:;'!]", "", title)
                 cleaned_title = clean_title(title_clean)
-            
+
                 imdb_data = await get_poster(cleaned_title)
                 poster = imdb_data.get('poster') if imdb_data else None
-            
-                # Creating formatted text-based links with bold
-                caption = (
-                    f"🎬 <b>{title} Tamil HDRip</b>\n\n"
-                    "📀 <b>❤️‍🔥 ᴜᴘʟᴏᴀᴅᴇᴅ ʙʏ - <a href='https://t.me/Tamilmobx'>@Tamilmobx</a></b>\n\n"
-                    "<b>⚡ ᴅɪʀᴇᴄᴛ ғɪʟᴇs / ꜰᴀꜱᴛ ʟɪɴᴋ 🚀</b>\n\n"
-                )
 
-                for i, file_id in enumerate(user_states[chat_id]["file_ids"]):
-                    if WEBSITE_URL_MODE == True:
-                        long_url = f"{WEBSITE_URL}?start={file_id}"
-                    else:
-                        long_url = f"https://t.me/{temp.U_NAME}?start={file_id}"
-                    short_link_url = await short_link(long_url) or long_url
+                file_info = []
+                for i, file_id in enumerate(user_states[chat_id].get("file_ids", [])):
+                    try:
+                        long_url = f"https://t.me/{temp.U_NAME}?start=file_{file_id[0]}"
+                        try:
+                            short_link_url = await short_link(long_url)
+                        except Exception as e:
+                            print(f"Failed to shorten URL: {long_url}, Error: {e}")
+                            short_link_url = long_url  # Fallback to long URL
+                        file_size = user_states[chat_id].get("file_sizes", [])[i]
+                        file_info.append(f"》{file_size} : [Click Here]({short_link_url})")
+                    except Exception as e:
+                        print(f"Error processing file ID {file_id}: {e}")
+                file_info_text = "\n\n".join(file_info) if file_info else "No files available."
 
-                    quality = user_states[chat_id]['qualities'][i] or "Unknown"
-                    size = user_states[chat_id]['file_sizes'][i]
-                    
-                    #caption += f"🗳 **{size} [{quality}]** - [**Generated Link**]({short_link_url})\n"
-                    #caption += f"🗳 **{size} {quality}** - [**Generated Link**]({short_link_url})\n"
-                    caption += f"🗳 <b>{size} [{quality}] ➜ <a href='{short_link_url}'>📥 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗</a></b>\n\n"
+                stream_links_info = []
+                for i, stream_link in enumerate(user_states[chat_id]["stream_links"]):
+                    long_stream_url = stream_link[0]
+                    short_stream_link_url = await short_link(long_stream_url)
+                    stream_links_info.append(f"》{user_states[chat_id]['file_sizes'][i]} : [Click Here]({short_stream_link_url})")
 
-                caption += (
-                    "<b>🛠 Dᴏᴡɴʟᴏᴀᴅ Gᴜɪᴅᴇ : <a href='https://t.me/Howtodowloa/9'>📖 Cʟɪᴄᴋ Hᴇʀᴇ 𓆪</a> 👀</b>\n\n"
-                    "<b>🍿 𓆩 Mᴏᴠɪᴇ Rᴇǫ 𝟸𝟺x𝟽 ☛ : <a href='https://t.me/+6QFNHZzurnFjY2Jl'>📢 Cʟɪᴄᴋ Hᴇʀᴇ</a> 🔥</b>\n\n"
-                    "<b>ー♡꘎ 𓆩 Sʜᴀʀᴇ Wɪᴛʜ Fʀɪᴇɴᴅs 𓆪꘎♡ー</b>"
-                )
+                stream_links_text = "\n\n".join(stream_links_info)
 
-                if poster:
-                    await message.reply_photo(poster, caption=caption)
-                else:
-                    await message.reply(caption)
-                    
+                summary_message = f"**🎬 {title} Tamil HDRip**\n\n" \
+                                  f"**[ 360p☆480p☆Hevc☆720p☆1080p ]✌**\n\n" \
+                                  f"**𓆩🔻𓆪 Dɪʀᴇᴄᴛ Tᴇʟᴇɢʀᴀᴍ Fɪʟᴇs Oɴʟʏ👇**\n\n" \
+                                  f"{file_info_text}\n\n" \
+                                  f"**✅ Nᴏᴛᴇ : [Hᴏᴡ ᴛᴏ Dᴏᴡɴʟᴏᴀᴅ]({HOW_TO_POST_SHORT})👀**\n\n" \
+                                  f"**𓆩🔻𓆪 Sᴛʀᴇᴀᴍ/Fᴀsᴛ Dᴏᴡɴʟᴏᴀᴅ 👇**\n\n" \
+                                  f"{stream_links_text}\n\n" \
+                                  f"**✅ Nᴏᴛᴇ : [Hᴏᴡ ᴛᴏ Dᴏᴡɴʟᴏᴀᴅ]({HOW_TO_POST_SHORT})👀**\n\n" \
+                                  f"**Mᴏvɪᴇ Gʀᴏᴜᴘ 24/7 : @Roxy_Request_24_7**\n\n" \
+                                  f"**❤️‍🔥ー𖤍 𓆩 Sʜᴀʀᴇ Wɪᴛʜ Fʀɪᴇɴᴅs 𓆪 𖤍ー❤️‍🔥**"
+
+                # Show channel options to user
+                buttons = [
+                    [InlineKeyboardButton(text=channel_name, callback_data=f"post_{channel_id}") for channel_id, channel_name in TARGET_CHANNELS.items()]
+                ]
+                reply_markup = InlineKeyboardMarkup(buttons)
+
+                await message.reply("Select a channel to post:", reply_markup=reply_markup)
                 await message.delete()
-                del user_states[chat_id]
+
+                # Store movie details for later posting
+                user_states[chat_id]["summary_message"] = summary_message
+                user_states[chat_id]["poster"] = poster
+                user_states[chat_id]["file_info_text"] = file_info_text
+                user_states[chat_id]["stream_links_text"] = stream_links_text
 
         else:
             return
     except Exception as e:
         await message.reply(f"Error occurred: {e}")
 
+@Client.on_callback_query(filters.regex(r"post_(\S+)"))
+async def post_to_channel(client, callback_query):
+    try:
+        chat_id = callback_query.message.chat.id
+        channel_id = callback_query.data.split("_")[1]
+        summary_message = user_states[chat_id]["summary_message"]
+        poster = user_states[chat_id].get("poster")
+        file_info_text = user_states[chat_id]["file_info_text"]
+        stream_links_text = user_states[chat_id]["stream_links_text"]
 
+        if poster:
+            await client.send_photo(channel_id, photo=poster, caption=summary_message)
+        else:
+            await client.send_message(channel_id, summary_message)
 
+        await callback_query.message.reply(f"✅ **Movie has been posted to {TARGET_CHANNELS[channel_id]}!**")
+        await callback_query.message.delete()
+        del user_states[chat_id]
+
+    except Exception as e:
+        await callback_query.message.reply(f"Error occurred: {e}")
 
