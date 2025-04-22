@@ -646,7 +646,8 @@ async def handle_message(client, message):
                         "files_received": 0,
                         "file_ids": [],
                         "file_sizes": [],
-                        "qualities": []
+                        "qualities": [],
+                        "stream_links": []  # ✅ Add this line
                     }
 
                     reply_message = await message.reply("**⏩ Forward the No: 1 file**")
