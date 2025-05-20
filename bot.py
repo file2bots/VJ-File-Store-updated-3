@@ -80,3 +80,27 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         logging.info('Service Stopped Bye 👋')
 
+from pyrogram import Client, filters
+from utils.imdb import get_imdb_details  # <- create this file
+from database.ia_filterdb import save_file_data  # <- create or confirm this
+
+@Client.on_message(filters.channel & filters.document | filters.video)
+async def auto_post_handler(client, message):
+    if str(message.chat.id) != str(DATABASE_CHANNEL_ID):
+        return  # Only listen to your DB channel
+
+    file_name = message.document.file_name if message.document else message.video.file_name
+    title = extract_title_from_filename(file_name)  # <- write this helper
+
+    imdb_data = await get_imdb_details(title)
+    await save_file_data(message, imdb_data)
+
+    caption = generate_caption(imdb_data)
+    buttons = [[InlineKeyboardButton("📥 Get Link", url=f"https://t.me/{BOT_USERNAME}?start={title.replace(' ', '_')}")]]
+
+    await client.send_photo(
+        chat_id=UPDATE_CHANNEL_ID,
+        photo=imdb_data.get("poster", ""),
+        caption=caption,
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
