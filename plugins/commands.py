@@ -769,3 +769,27 @@ async def post_to_channel(client, callback_query):
     except Exception as e:
         await callback_query.message.reply(f"Error occurred: {e}")
 
+
+
+from pyrogram import filters
+from pyrogram.types import Message
+from database.ia_filterdb import get_files_by_query  # <-- Make sure this function exists
+
+@Client.on_message(filters.command("search") & filters.private)
+async def search_handler(bot, message: Message):
+    if len(message.command) < 2:
+        return await message.reply("Please enter a search term:\n`/search Inception 1080p`")
+
+    query = " ".join(message.command[1:])
+    files = await get_files_by_query(query)
+
+    if not files:
+        return await message.reply("No files found matching your query.")
+
+    text = f"**Search Results for:** `{query}`\n\n"
+    for file in files:
+        text += f"🎬 **{file['title']}** - {file['quality']}\n📦 Size: {file['size']}\n🔗 /start?={file['title'].replace(' ', '_')}\n\n"
+
+    await message.reply(text)
+
+
