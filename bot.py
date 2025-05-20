@@ -81,7 +81,7 @@ if __name__ == '__main__':
         logging.info('Service Stopped Bye 👋')
 
 from pyrogram import Client, filters
-from utils.imdb import get_imdb_details  # <- create this file
+from plugins.utils.imdb import get_imdb_details  # <- create this file
 from database.ia_filterdb import save_file_data  # <- create or confirm this
 
 @Client.on_message(filters.channel & filters.document | filters.video)
