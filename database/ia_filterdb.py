@@ -99,7 +99,7 @@ def unpack_new_file_id(new_file_id):
     """Return file_id directly from Pyrogram v2.0+"""
     return new_file_id  # No need to decode/re-encode
 
-    async def get_files_by_query(query):
+async def get_files_by_query(query):
         from . import media_collection  # Make sure you’ve initialized this MongoDB collection
     
         # Search by title or filename
