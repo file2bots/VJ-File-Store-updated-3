@@ -24,6 +24,7 @@ from pyrogram.types import *
 
 # Lazy import to prevent circular dependency
 from config import *
+from utils import get_poster
 
 # Import utils functions separately to avoid circular import
 from utils import (
@@ -503,86 +504,120 @@ async def gen_link_s(bot, message):
         
 
 @Client.on_message(filters.command(['batch']) & filters.create(allowed))
-async def gen_link_batch(bot, message):
+async def gen_link_batch(bot, message: Message):
     username = (await bot.get_me()).username
+
     if " " not in message.text:
-        return await message.reply("Use correct format.\nExample /batch https://t.me/CloudXbotz/41 https://t.me/CloudXbotz/45.")
+        return await message.reply("Use correct format.\nExample: /batch https://t.me/Channel/41 https://t.me/Channel/45")
+
     links = message.text.strip().split(" ")
     if len(links) != 3:
-        return await message.reply("Use correct format.\nExample /batch https://t.me/CloudXbotz/41 https://t.me/CloudXbotz/45.")
+        return await message.reply("Use correct format.\nExample: /batch https://t.me/Channel/41 https://t.me/Channel/45")
+
     cmd, first, last = links
-    regex = re.compile("(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
+    regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
+
     match = regex.match(first)
     if not match:
-        return await message.reply('Invalid link')
+        return await message.reply('Invalid first link.')
     f_chat_id = match.group(4)
     f_msg_id = int(match.group(5))
     if f_chat_id.isnumeric():
-        f_chat_id = int(("-100" + f_chat_id))
+        f_chat_id = int("-100" + f_chat_id)
 
     match = regex.match(last)
     if not match:
-        return await message.reply('Invalid link')
+        return await message.reply('Invalid second link.')
     l_chat_id = match.group(4)
     l_msg_id = int(match.group(5))
     if l_chat_id.isnumeric():
-        l_chat_id = int(("-100" + l_chat_id))
+        l_chat_id = int("-100" + l_chat_id)
 
     if f_chat_id != l_chat_id:
-        return await message.reply("Chat ids not matched.")
+        return await message.reply("Both links must be from the same chat.")
+
     try:
         chat_id = (await bot.get_chat(f_chat_id)).id
     except ChannelInvalid:
-        return await message.reply('This may be a private channel / group. Make me an admin over there to index the files.')
+        return await message.reply('Private channel/group. Make me admin.')
     except (UsernameInvalid, UsernameNotModified):
-        return await message.reply('Invalid Link specified.')
+        return await message.reply('Invalid link.')
     except Exception as e:
-        return await message.reply(f'Errors - {e}')
+        return await message.reply(f'Error: {e}')
 
-    sts = await message.reply("**ɢᴇɴᴇʀᴀᴛɪɴɢ ʟɪɴᴋ ғᴏʀ ʏᴏᴜʀ ᴍᴇssᴀɢᴇ**.\n**ᴛʜɪs ᴍᴀʏ ᴛᴀᴋᴇ ᴛɪᴍᴇ ᴅᴇᴘᴇɴᴅɪɴɢ ᴜᴘᴏɴ ɴᴜᴍʙᴇʀ ᴏғ ᴍᴇssᴀɢᴇs**")
+    sts = await message.reply("**ɢᴇɴᴇʀᴀᴛɪɴɢ ʟɪɴᴋ...**\nThis may take time depending on number of messages.")
 
     FRMT = "**ɢᴇɴᴇʀᴀᴛɪɴɢ ʟɪɴᴋ...**\n**ᴛᴏᴛᴀʟ ᴍᴇssᴀɢᴇs:** {total}\n**ᴅᴏɴᴇ:** {current}\n**ʀᴇᴍᴀɪɴɪɴɢ:** {rem}\n**sᴛᴀᴛᴜs:** {sts}"
 
     outlist = []
+    imdb_list = []
 
-
-    # file store without db channel
     og_msg = 0
-    tot = 0
+    total_to_fetch = l_msg_id - f_msg_id + 1
+
     async for msg in bot.iter_messages(f_chat_id, l_msg_id, f_msg_id):
-        tot += 1
-        if og_msg % 20 == 0:
-            try:
-                await sts.edit(FRMT.format(total=l_msg_id-f_msg_id, current=tot, rem=((l_msg_id-f_msg_id) - tot), sts="Saving Messages"))
-            except:
-                pass
         if msg.empty or msg.service:
             continue
-        file = {
-            "channel_id": f_chat_id,
-            "msg_id": msg.id
-        }
-        og_msg +=1
-        outlist.append(file)
 
+        og_msg += 1
+        outlist.append({"channel_id": f_chat_id, "msg_id": msg.id})
 
-    with open(f"batchmode_{message.from_user.id}.json", "w+") as out:
+        # IMDb title fetch (only for videos/documents)
+        file_name = None
+        if msg.video:
+            file_name = msg.video.file_name
+        elif msg.document:
+            file_name = msg.document.file_name
+
+        imdb_caption = None
+        if file_name:
+            imdb_data = await get_poster(file_name)
+            if imdb_data:
+                title = imdb_data.get("title", "Unknown")
+                year = imdb_data.get("year", "")
+                rating = imdb_data.get("rating", "N/A")
+                imdb_caption = f"{title} ({year}) ⭐ {rating}"
+        imdb_list.append(imdb_caption if imdb_caption else "Unknown Title")
+
+        # Status edit every 20 messages
+        if og_msg % 20 == 0:
+            try:
+                await sts.edit(FRMT.format(total=total_to_fetch, current=og_msg, rem=(total_to_fetch - og_msg), sts="Fetching metadata..."))
+            except:
+                pass
+
+    # Save JSON batch file
+    file_path = f"batchmode_{message.from_user.id}.json"
+    with open(file_path, "w+") as out:
         json.dump(outlist, out)
-    post = await bot.send_document(LOG_CHANNEL, f"batchmode_{message.from_user.id}.json", file_name="Batch.json", caption="⚠️ Batch Generated For Filestore.")
-    os.remove(f"batchmode_{message.from_user.id}.json")
+
+    post = await bot.send_document(LOG_CHANNEL, file_path, file_name="Batch.json", caption="⚠️ Batch Generated For FileStore.")
+    os.remove(file_path)
+
     string = str(post.id)
     file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
+
+    share_link = f"{WEBSITE_URL}?start=BATCH-{file_id}" if WEBSITE_URL_MODE else f"https://t.me/{username}?start=BATCH-{file_id}"
+
     user_id = message.from_user.id
     user = await get_user(user_id)
-    if WEBSITE_URL_MODE == True:
-        share_link = f"{WEBSITE_URL}?start=BATCH-{file_id}"
-    else:
-        share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
-    if user["base_site"] and user["shortener_api"] != None:
+
+    short_link = None
+    if user.get("base_site") and user.get("shortener_api"):
         short_link = await get_short_link(user, share_link)
-        await sts.edit(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\nContains `{og_msg}` files.\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}\n\n🖇️ sʜᴏʀᴛ ʟɪɴᴋ :- {short_link}</b>")
-    else:
-        await sts.edit(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\nContains `{og_msg}` files.\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
+
+    # Prepare final caption with IMDb list
+    caption_text = "\n".join([f"{i+1}. {x}" for i, x in enumerate(imdb_list)])
+    final_caption = (
+        f"<b>🎬 Movie Batch Created! 🍿</b>\n\n"
+        f"Contains <code>{og_msg}</code> files.\n\n"
+        f"<b>Titles:</b>\n{caption_text}\n\n"
+        f"🔗 Original Link: {share_link}"
+    )
+    if short_link:
+        final_caption += f"\n🖇️ Short Link: {short_link}"
+
+    await sts.edit(final_caption)
         
 
         
