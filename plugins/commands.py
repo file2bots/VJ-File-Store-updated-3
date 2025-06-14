@@ -39,6 +39,7 @@ from CloudXbotz.utils.file_properties import get_name, get_hash, get_media_file_
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
+STEP_STORE = {}
 
 #--------------------------force sub code--------------------------#
 async def get_invite_link(bot, chat_id):
@@ -503,31 +504,32 @@ async def gen_link_s(bot, message):
         await message.reply(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
         
 
-@Client.on_message(filters.command(['batch']) & filters.create(allowed))
-async def gen_link_batch(bot, message: Message):
+@Client.on_message(filters.command("batch") & filters.create(lambda _, __, m: True))  # put your 'allowed' filter here
+async def handle_batch(bot, message):
+    user_id = message.from_user.id
     username = (await bot.get_me()).username
 
-    if " " not in message.text:
-        return await message.reply("Use correct format.\nExample: /batch https://t.me/Channel/41 https://t.me/Channel/45")
+    # Validate input links
+    parts = message.text.strip().split()
+    if len(parts) != 3:
+        return await message.reply(
+            "Use correct format:\n/batch <first_link> <last_link>\nExample:\n/batch https://t.me/channel/100 https://t.me/channel/110"
+        )
 
-    links = message.text.strip().split(" ")
-    if len(links) != 3:
-        return await message.reply("Use correct format.\nExample: /batch https://t.me/Channel/41 https://t.me/Channel/45")
-
-    cmd, first, last = links
+    _, first_link, last_link = parts
     regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
 
-    match = regex.match(first)
+    match = regex.match(first_link)
     if not match:
-        return await message.reply('Invalid first link.')
+        return await message.reply("Invalid first link.")
     f_chat_id = match.group(4)
     f_msg_id = int(match.group(5))
     if f_chat_id.isnumeric():
         f_chat_id = int("-100" + f_chat_id)
 
-    match = regex.match(last)
+    match = regex.match(last_link)
     if not match:
-        return await message.reply('Invalid second link.')
+        return await message.reply("Invalid last link.")
     l_chat_id = match.group(4)
     l_msg_id = int(match.group(5))
     if l_chat_id.isnumeric():
@@ -536,88 +538,114 @@ async def gen_link_batch(bot, message: Message):
     if f_chat_id != l_chat_id:
         return await message.reply("Both links must be from the same chat.")
 
+    # Check access to chat
     try:
-        chat_id = (await bot.get_chat(f_chat_id)).id
+        await bot.get_chat(f_chat_id)
     except ChannelInvalid:
-        return await message.reply('Private channel/group. Make me admin.')
+        return await message.reply("I don't have access to that channel/group. Make me admin or check privacy.")
     except (UsernameInvalid, UsernameNotModified):
-        return await message.reply('Invalid link.')
+        return await message.reply("Invalid chat link.")
     except Exception as e:
-        return await message.reply(f'Error: {e}')
+        return await message.reply(f"Error accessing chat: {e}")
 
-    sts = await message.reply("**ɢᴇɴᴇʀᴀᴛɪɴɢ ʟɪɴᴋ...**\nThis may take time depending on number of messages.")
+    status_msg = await message.reply("🔍 Fetching messages...")
 
-    FRMT = "**ɢᴇɴᴇʀᴀᴛɪɴɢ ʟɪɴᴋ...**\n**ᴛᴏᴛᴀʟ ᴍᴇssᴀɢᴇs:** {total}\n**ᴅᴏɴᴇ:** {current}\n**ʀᴇᴍᴀɪɴɪɴɢ:** {rem}\n**sᴛᴀᴛᴜs:** {sts}"
+    files = []
+    poster_file_id = None
+    imdb_caption_list = []
+    total_files = 0
 
-    outlist = []
-    imdb_list = []
-
-    og_msg = 0
-    total_to_fetch = l_msg_id - f_msg_id + 1
-
+    # Iterate messages in range (l_msg_id to f_msg_id because iter_messages works backward)
     async for msg in bot.iter_messages(f_chat_id, l_msg_id, f_msg_id):
         if msg.empty or msg.service:
             continue
+        total_files += 1
+        files.append({"channel_id": f_chat_id, "msg_id": msg.id})
 
-        og_msg += 1
-        outlist.append({"channel_id": f_chat_id, "msg_id": msg.id})
+        # Get poster only from first valid file
+        if not poster_file_id:
+            file_name = None
+            if msg.video:
+                file_name = msg.video.file_name
+            elif msg.document:
+                file_name = msg.document.file_name
+            if file_name:
+                imdb = await get_poster(file_name)
+                if imdb and imdb.get("poster_url"):
+                    try:
+                        # Download poster image temporarily and send to get file_id
+                        photo_path = await bot.download_media(imdb["poster_url"])
+                        sent = await bot.send_photo(message.chat.id, photo_path, caption="Poster fetched. Processing...")
+                        poster_file_id = sent.photo.file_id
+                        await sent.delete()
+                        os.remove(photo_path)
+                    except Exception:
+                        pass
+                imdb_caption_list.append(f'{imdb.get("title", "Unknown")} ⭐ {imdb.get("rating", "N/A")}')
+        else:
+            imdb_caption_list.append("")  # keep index same
 
-        # IMDb title fetch (only for videos/documents)
-        file_name = None
-        if msg.video:
-            file_name = msg.video.file_name
-        elif msg.document:
-            file_name = msg.document.file_name
+    if not files:
+        return await status_msg.edit("No valid files found in the specified range.")
 
-        imdb_caption = None
-        if file_name:
-            imdb_data = await get_poster(file_name)
-            if imdb_data:
-                title = imdb_data.get("title", "Unknown")
-                year = imdb_data.get("year", "")
-                rating = imdb_data.get("rating", "N/A")
-                imdb_caption = f"{title} ({year}) ⭐ {rating}"
-        imdb_list.append(imdb_caption if imdb_caption else "Unknown Title")
+    # Save files list JSON
+    json_filename = f"batch_{user_id}.json"
+    with open(json_filename, "w") as f:
+        json.dump(files, f)
 
-        # Status edit every 20 messages
-        if og_msg % 20 == 0:
-            try:
-                await sts.edit(FRMT.format(total=total_to_fetch, current=og_msg, rem=(total_to_fetch - og_msg), sts="Fetching metadata..."))
-            except:
-                pass
+    # Upload batch JSON to log channel
+    post = await bot.send_document(LOG_CHANNEL, json_filename, file_name="Batch.json", caption="Batch File for Filestore")
+    os.remove(json_filename)
 
-    # Save JSON batch file
-    file_path = f"batchmode_{message.from_user.id}.json"
-    with open(file_path, "w+") as out:
-        json.dump(outlist, out)
+    batch_id_encoded = base64.urlsafe_b64encode(str(post.id).encode()).decode().strip("=")
+    if WEBSITE_URL_MODE:
+        batch_link = f"{WEBSITE_URL}?start=BATCH-{batch_id_encoded}"
+    else:
+        batch_link = f"https://t.me/{username}?start=BATCH-{batch_id_encoded}"
 
-    post = await bot.send_document(LOG_CHANNEL, file_path, file_name="Batch.json", caption="⚠️ Batch Generated For FileStore.")
-    os.remove(file_path)
+    # Save in STEP_STORE to wait for title input
+    STEP_STORE[user_id] = {
+        "poster_file_id": poster_file_id,
+        "imdb_captions": imdb_caption_list,
+        "batch_link": batch_link,
+        "total_files": total_files,
+    }
 
-    string = str(post.id)
-    file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-
-    share_link = f"{WEBSITE_URL}?start=BATCH-{file_id}" if WEBSITE_URL_MODE else f"https://t.me/{username}?start=BATCH-{file_id}"
-
-    user_id = message.from_user.id
-    user = await get_user(user_id)
-
-    short_link = None
-    if user.get("base_site") and user.get("shortener_api"):
-        short_link = await get_short_link(user, share_link)
-
-    # Prepare final caption with IMDb list
-    caption_text = "\n".join([f"{i+1}. {x}" for i, x in enumerate(imdb_list)])
-    final_caption = (
-        f"<b>🎬 Movie Batch Created! 🍿</b>\n\n"
-        f"Contains <code>{og_msg}</code> files.\n\n"
-        f"<b>Titles:</b>\n{caption_text}\n\n"
-        f"🔗 Original Link: {share_link}"
+    await status_msg.edit(
+        "✅ Batch files collected and poster fetched (if available).\n"
+        "Now, please send me the *title* you want to use for this batch."
     )
-    if short_link:
-        final_caption += f"\n🖇️ Short Link: {short_link}"
 
-    await sts.edit(final_caption)
+
+@Client.on_message(filters.text & filters.private)
+async def receive_title(bot, message):
+    user_id = message.from_user.id
+    if user_id not in STEP_STORE:
+        return  # Not waiting for batch title
+
+    data = STEP_STORE.pop(user_id)
+    title = message.text.strip()
+    poster_file_id = data.get("poster_file_id")
+    imdb_captions = data.get("imdb_captions", [])
+    batch_link = data.get("batch_link")
+    total_files = data.get("total_files")
+
+    # Build caption
+    caption = f"<b>🎬 {title}</b>\n\n"
+    caption += f"<b>Total Files:</b> <code>{total_files}</code>\n\n"
+
+    # Add first 20 imdb captions if available
+    caption_lines = [f"{i+1}. {cap}" for i, cap in enumerate(imdb_captions) if cap]
+    if caption_lines:
+        caption += "\n".join(caption_lines[:20]) + "\n\n"
+
+    caption += f"🔗 <b>Batch Link:</b> {batch_link}"
+
+    # Send poster with caption if poster exists, else send text only
+    if poster_file_id:
+        await bot.send_photo(message.chat.id, poster_file_id, caption=caption)
+    else:
+        await message.reply(caption)
         
 
         
