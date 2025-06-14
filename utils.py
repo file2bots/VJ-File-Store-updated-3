@@ -105,19 +105,19 @@ async def get_poster(query, bulk=False, id=False, file=None):
         return None
 
     query = query.strip().lower()
-            title = query
-            year = None
+    title = query
+    year = None
 
-            # Extract year from query or filename if possible
-            import re
-            year_match = re.findall(r'[1-2]\d{3}$', query)
-            if year_match:
-                year = year_match[0]
-                title = query.replace(year, "").strip()
-            elif file:
-                year_match = re.findall(r'[1-2]\d{3}', file)
-                if year_match:
-                    year = year_match[0]
+    # Extract year from query or filename if possible
+    import re
+    year_match = re.findall(r'[1-2]\d{3}$', query)
+    if year_match:
+        year = year_match[0]
+        title = query.replace(year, "").strip()
+    elif file:
+        year_match = re.findall(r'[1-2]\d{3}', file)
+        if year_match:
+            year = year_match[0]
 
             # Search movie by title
             movie_search = imdb.search_movie(title, results=10)
