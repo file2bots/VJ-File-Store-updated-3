@@ -100,49 +100,48 @@ def list_to_str(k):
         return ', '.join(str(elem) for elem in k)
 
 async def get_poster(query, bulk=False, id=False, file=None):
-    if not query:
-        print("get_poster: Empty or None query received")
-        return None
+    try:
+        if not query:
+            print("get_poster: Empty or None query received")
+            return None
 
-    query = query.strip().lower()
-    title = query
-    year = None
+        query = query.strip().lower()
+        title = query
+        year = None
 
-    # Extract year from query or filename if possible
-    import re
-    year_match = re.findall(r'[1-2]\d{3}$', query)
-    if year_match:
-        year = year_match[0]
-        title = query.replace(year, "").strip()
-    elif file:
-        year_match = re.findall(r'[1-2]\d{3}', file)
+        # Extract year from query or filename if possible
+        import re
+        year_match = re.findall(r'[1-2]\d{3}$', query)
         if year_match:
             year = year_match[0]
+            title = query.replace(year, "").strip()
+        elif file:
+            year_match = re.findall(r'[1-2]\d{3}', file)
+            if year_match:
+                year = year_match[0]
 
-            # Search movie by title
-            movie_search = imdb.search_movie(title, results=10)
-            if not movie_search:
-                print("No movie found for query:", title)
-                return None
+        # Search movie by title
+        movie_search = imdb.search_movie(title, results=10)
+        if not movie_search:
+            print("No movie found for query:", title)
+            return None
 
-            # Filter by year if given
-            if year:
-                filtered = [m for m in movie_search if str(m.get('year')) == year]
-                if not filtered:
-                    filtered = movie_search
-            else:
-                filtered = movie_search
-
-            # Filter by kind movie or tv series
-            filtered = [m for m in filtered if m.get('kind') in ['movie', 'tv series']]
+        # Filter by year if given
+        if year:
+            filtered = [m for m in movie_search if str(m.get('year')) == year]
             if not filtered:
                 filtered = movie_search
-
-            if bulk:
-                return filtered
-            movieid = filtered[0].movieID
         else:
-            movieid = query
+            filtered = movie_search
+
+        # Filter by kind movie or tv series
+        filtered = [m for m in filtered if m.get('kind') in ['movie', 'tv series']]
+        if not filtered:
+            filtered = movie_search
+
+        if bulk:
+            return filtered
+        movieid = filtered[0].movieID
 
         movie = imdb.get_movie(movieid)
         if not movie:
@@ -161,10 +160,8 @@ async def get_poster(query, bulk=False, id=False, file=None):
         poster_url = movie.get('full-size cover url') or movie.get('cover url') or ""
         if not poster_url and movie.get('imdbID'):
             imdb_id = movie.get('imdbID')
-            # This is a common poster base url pattern for IMDb, but not guaranteed
             poster_url = f"https://m.media-amazon.com/images/M/{imdb_id}.jpg"
 
-        # Debug print
         print(f"Poster URL for {movie.get('title')}: {poster_url}")
 
         return {
