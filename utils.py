@@ -100,9 +100,11 @@ def list_to_str(k):
         return ', '.join(str(elem) for elem in k)
 
 async def get_poster(query, bulk=False, id=False, file=None):
-    try:
-        if not id:
-            query = (query.strip()).lower()
+    if not query:
+        print("get_poster: Empty or None query received")
+        return None
+
+    query = query.strip().lower()
             title = query
             year = None
 
