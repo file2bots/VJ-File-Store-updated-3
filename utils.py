@@ -180,6 +180,8 @@ async def get_poster(query, bulk=False, id=False, file=None):
         'plot': plot,
         'rating': str(movie.get("rating")),
         'url': f'https://www.imdb.com/title/tt{movieid}'
+    }
+        
 async def search_gagala(text):
     usr_agent = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
