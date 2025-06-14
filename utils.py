@@ -81,6 +81,7 @@ async def check_verification(bot, userid):
 #-------------------------------------IMDB POSTER----------------------------------------#
 
 from imdb import Cinemagoer
+from imdb import IMDb
 from bs4 import BeautifulSoup
 
 imdb = Cinemagoer()
@@ -91,113 +92,99 @@ class temp(object):
     B_NAME = None
 
 
-def list_to_str(k):
-    if not k:
-        return "N/A"
-    elif len(k) == 1:
-        return str(k[0])
-    else:
-        return ', '.join(str(elem) for elem in k)
+ia = IMDb()
+OMDB_API_KEY = "7cd62fdc"  # <-- Set your OMDb API Key here
+
+def list_to_str(data):
+    return ', '.join(map(str, data)) if data else None
+
+def get_omdb_poster(title, year=None):
+    try:
+        params = {"t": title, "apikey": OMDB_API_KEY}
+        if year:
+            params["y"] = year
+        res = requests.get("http://www.omdbapi.com/", params=params).json()
+        return res.get("Poster", "") if res.get("Response") == "True" else ""
+    except:
+        return ""
 
 async def get_poster(query, bulk=False, id=False, file=None):
-    try:
-        if not query:
-            print("get_poster: Empty or None query received")
-            return None
-
+    if not id:
         query = query.strip().lower()
         title = query
-        year = None
-
-        # Extract year from query or filename if possible
-        import re
-        year_match = re.findall(r'[1-2]\d{3}$', query)
-        if year_match:
-            year = year_match[0]
-            title = query.replace(year, "").strip()
-        elif file:
-            year_match = re.findall(r'[1-2]\d{3}', file)
-            if year_match:
-                year = year_match[0]
-
-        # Search movie by title
-        movie_search = imdb.search_movie(title, results=10)
-        if not movie_search:
-            print("No movie found for query:", title)
-            return None
-
-        # Filter by year if given
+        year = re.findall(r'[1-2]\d{3}$', query)
         if year:
-            filtered = [m for m in movie_search if str(m.get('year')) == year]
-            if not filtered:
-                filtered = movie_search
+            year = list_to_str(year[:1])
+            title = query.replace(year, "").strip()
+        elif file is not None:
+            year = re.findall(r'[1-2]\d{3}', file)
+            if year:
+                year = list_to_str(year[:1])
         else:
-            filtered = movie_search
+            year = None
 
-        # Filter by kind movie or tv series
-        filtered = [m for m in filtered if m.get('kind') in ['movie', 'tv series']]
-        if not filtered:
-            filtered = movie_search
-
-        if bulk:
-            return filtered
-        movieid = filtered[0].movieID
-
-        movie = imdb.get_movie(movieid)
-        if not movie:
-            print("No movie details found for ID:", movieid)
+        movieid = ia.search_movie(title.lower(), results=10)
+        if not movieid:
             return None
 
-        # Get release date or year
-        release_date = movie.get('original air date') or movie.get('year') or "N/A"
+        if year:
+            filtered = list(filter(lambda k: str(k.get('year')) == str(year), movieid)) or movieid
+        else:
+            filtered = movieid
 
-        # Get plot (limit length)
-        plot = movie.get('plot outline') or (movie.get('plot')[0] if movie.get('plot') else "")
-        if plot and len(plot) > 800:
-            plot = plot[:800] + "..."
+        movieid = list(filter(lambda k: k.get('kind') in ['movie', 'tv series'], filtered)) or filtered
+        if bulk:
+            return movieid
+        movieid = movieid[0].movieID
+    else:
+        movieid = query
 
-        # Get poster url, try fallback if missing
-        poster_url = movie.get('full-size cover url') or movie.get('cover url') or ""
-        if not poster_url and movie.get('imdbID'):
-            imdb_id = movie.get('imdbID')
-            poster_url = f"https://m.media-amazon.com/images/M/{imdb_id}.jpg"
-
-        print(f"Poster URL for {movie.get('title')}: {poster_url}")
-
-        return {
-            'title': movie.get('title'),
-            'votes': movie.get('votes'),
-            'aka': list_to_str(movie.get('akas')),
-            'seasons': movie.get('number of seasons'),
-            'box_office': movie.get('box office'),
-            'localized_title': movie.get('localized title'),
-            'kind': movie.get('kind'),
-            'imdb_id': f"tt{movie.get('imdbID')}",
-            'cast': list_to_str(movie.get('cast')),
-            'runtime': list_to_str(movie.get('runtimes')),
-            'countries': list_to_str(movie.get('countries')),
-            'certificates': list_to_str(movie.get('certificates')),
-            'languages': list_to_str(movie.get('languages')),
-            'director': list_to_str(movie.get('director')),
-            'writer': list_to_str(movie.get('writer')),
-            'producer': list_to_str(movie.get('producer')),
-            'composer': list_to_str(movie.get('composer')),
-            'cinematographer': list_to_str(movie.get('cinematographer')),
-            'music_team': list_to_str(movie.get('music department')),
-            'distributors': list_to_str(movie.get('distributors')),
-            'release_date': release_date,
-            'year': movie.get('year'),
-            'genres': list_to_str(movie.get('genres')),
-            'poster': poster_url,
-            'plot': plot,
-            'rating': str(movie.get('rating')),
-            'url': f'https://www.imdb.com/title/tt{movieid}'
-        }
-
-    except Exception as e:
-        print(f"Error in get_poster: {e}")
+    movie = ia.get_movie(movieid)
+    if not movie:
         return None
-        
+
+    # Poster Logic
+    poster_url = movie.get('full-size cover url') or movie.get('cover url')
+    if not poster_url:
+        poster_url = get_omdb_poster(movie.get('title'), movie.get('year'))
+
+    plot = movie.get('plot outline') or ""
+    if not plot and movie.get('plot'):
+        plot = movie.get('plot')[0]
+    if plot and len(plot) > 800:
+        plot = plot[:800] + "..."
+
+    date = movie.get('original air date') or movie.get('year') or "N/A"
+
+    return {
+        'title': movie.get('title'),
+        'votes': movie.get('votes'),
+        "aka": list_to_str(movie.get("akas")),
+        "seasons": movie.get("number of seasons"),
+        "box_office": movie.get('box office'),
+        'localized_title': movie.get('localized title'),
+        'kind': movie.get("kind"),
+        "imdb_id": f"tt{movie.get('imdbID')}",
+        "cast": list_to_str(movie.get("cast")),
+        "runtime": list_to_str(movie.get("runtimes")),
+        "countries": list_to_str(movie.get("countries")),
+        "certificates": list_to_str(movie.get("certificates")),
+        "languages": list_to_str(movie.get("languages")),
+        "director": list_to_str(movie.get("director")),
+        "writer": list_to_str(movie.get("writer")),
+        "producer": list_to_str(movie.get("producer")),
+        "composer": list_to_str(movie.get("composer")),
+        "cinematographer": list_to_str(movie.get("cinematographer")),
+        "music_team": list_to_str(movie.get("music department")),
+        "distributors": list_to_str(movie.get("distributors")),
+        'release_date': date,
+        'year': movie.get('year'),
+        'genres': list_to_str(movie.get("genres")),
+        'poster': poster_url,
+        'plot': plot,
+        'rating': str(movie.get("rating")),
+        'url': f'https://www.imdb.com/title/tt{movieid}'
+    }
 async def search_gagala(text):
     usr_agent = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
