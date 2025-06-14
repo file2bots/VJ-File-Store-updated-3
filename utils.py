@@ -102,19 +102,19 @@ async def get_poster(query, bulk=False, id=False, file=None):
         elif file is not None:
             year = re.findall(r'[1-2]\d{3}', file, re.IGNORECASE)
             if year:
-                year = list_to_str(year[:1]) 
+                year = list_to_str(year[:1])
         else:
             year = None
         movieid = imdb.search_movie(title.lower(), results=10)
         if not movieid:
             return None
         if year:
-            filtered=list(filter(lambda k: str(k.get('year')) == str(year), movieid))
+            filtered = list(filter(lambda k: str(k.get('year')) == str(year), movieid))
             if not filtered:
                 filtered = movieid
         else:
             filtered = movieid
-        movieid=list(filter(lambda k: k.get('kind') in ['movie', 'tv series'], filtered))
+        movieid = list(filter(lambda k: k.get('kind') in ['movie', 'tv series'], filtered))
         if not movieid:
             movieid = filtered
         if bulk:
@@ -122,15 +122,18 @@ async def get_poster(query, bulk=False, id=False, file=None):
         movieid = movieid[0].movieID
     else:
         movieid = query
+
     movie = imdb.get_movie(movieid)
     if not movie:
         return None
+
     if movie.get("original air date"):
         date = movie["original air date"]
     elif movie.get("year"):
         date = movie.get("year")
     else:
         date = "N/A"
+
     plot = ""
     if not LONG_IMDB_DESCRIPTION:
         plot = movie.get('plot')
@@ -138,8 +141,16 @@ async def get_poster(query, bulk=False, id=False, file=None):
             plot = plot[0]
     else:
         plot = movie.get('plot outline')
+
     if plot and len(plot) > 800:
         plot = plot[0:800] + "..."
+
+    # ✅ Poster handling (IMDb only)
+    poster_url = ""
+    if movie.get('full-size cover url'):
+        poster_url = movie.get('full-size cover url')
+    elif movie.get('cover url'):
+        poster_url = movie.get('cover url')
 
     return {
         'title': movie.get('title'),
@@ -156,22 +167,19 @@ async def get_poster(query, bulk=False, id=False, file=None):
         "certificates": list_to_str(movie.get("certificates")),
         "languages": list_to_str(movie.get("languages")),
         "director": list_to_str(movie.get("director")),
-        "writer":list_to_str(movie.get("writer")),
-        "producer":list_to_str(movie.get("producer")),
-        "composer":list_to_str(movie.get("composer")) ,
-        "cinematographer":list_to_str(movie.get("cinematographer")),
+        "writer": list_to_str(movie.get("writer")),
+        "producer": list_to_str(movie.get("producer")),
+        "composer": list_to_str(movie.get("composer")),
+        "cinematographer": list_to_str(movie.get("cinematographer")),
         "music_team": list_to_str(movie.get("music department")),
         "distributors": list_to_str(movie.get("distributors")),
         'release_date': date,
         'year': movie.get('year'),
         'genres': list_to_str(movie.get("genres")),
-        'poster': movie.get('full-size cover url'),#
-        'poster': movie.get('full-size cover url') or movie.get('cover url') or "",
+        'poster': poster_url,
         'plot': plot,
         'rating': str(movie.get("rating")),
-        'url':f'https://www.imdb.com/title/tt{movieid}'
-    }
-
+        'url': f'https://www.imdb.com/title/tt{movieid}'
 async def search_gagala(text):
     usr_agent = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
